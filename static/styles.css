@@ -1,0 +1,55 @@
+/* static/styles.css */
+
+body {
+    background-color: #f8f9fa;
+}
+
+h1 {
+    color: #343a40;
+}
+
+/* Ensure card titles have consistent styling */
+.card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+/* Adjust card text styling */
+.card-text {
+    font-size: 0.95rem;
+}
+
+/* Button styling - now obsolete as buttons are removed */
+.btn-outline-primary {
+    border-width: 2px;
+}
+
+/* Styling for images within cards */
+.card-img-top {
+    height: 300px;
+    object-fit: cover;
+    border-top-left-radius: calc(0.25rem - 1px);
+    border-top-right-radius: calc(0.25rem - 1px);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card-img-top:hover {
+    /* transform: scale(1.05); */
+}
+
+/* Hover effect for the entire card */
+.card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure the entire card area removes underline from the link */
+a.text-decoration-none {
+    color: inherit; /* Inherit text color */
+}
+
+/* Optionally, change cursor to pointer when hovering over the entire card */
+a.text-decoration-none .card {
+    cursor: pointer;
+}
