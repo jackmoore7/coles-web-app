@@ -2,6 +2,7 @@
 
 body {
     background-color: #f8f9fa;
+    /* background-color: #E01A22; */
 }
 
 h1 {
@@ -19,10 +20,6 @@ h1 {
     font-size: 0.95rem;
 }
 
-/* Button styling - now obsolete as buttons are removed */
-.btn-outline-primary {
-    border-width: 2px;
-}
 
 /* Styling for images within cards */
 .card-img-top {
@@ -52,4 +49,52 @@ a.text-decoration-none {
 /* Optionally, change cursor to pointer when hovering over the entire card */
 a.text-decoration-none .card {
     cursor: pointer;
+}
+
+.btn-custom-white {
+    background-color: white;
+    color: #343a40; /* Change text color to any color you like */
+    border: 0px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hover effect: slightly darken the white and add shadow */
+.btn-custom-white:hover {
+    background-color: #f0f0f0; /* Slightly darker white */
+    color: #343a40; /* Darken text on hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Active state: more distinct color */
+.btn-custom-white.active {
+    background-color: #e0e0e0; /* Even darker for active */
+    color: white;
+}
+
+/* Remove spacing between buttons */
+.btn-group {
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .btn-custom-white, .btn-secondary {
+        width: 100%;
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.floating-image {
+    width: 150px; /* Adjust the size of the PNG */
+    animation: float 3s ease-in-out infinite; /* 4s duration, easing, infinite loop */
 }
