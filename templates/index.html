@@ -103,9 +103,10 @@
                                         {{ message.item_brand }} {{ message.item_name }}
                                     </h5>
                                     <p class="card-text">
+                                        <h5 class="card-title">${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }} (+{{ ((message.price_after - message.price_before) / message.price_before * 100)|round(2) }}%)</h5>
                                         <strong>Item ID:</strong> {{ message.item_id }}<br>
-                                        <strong>Price Before:</strong> ${{ message.price_before }}<br>
-                                        <strong>Price After:</strong> ${{ message.price_after }}<br>
+                                        <!-- <strong>Price Before:</strong> ${{ message.price_before }}<br> -->
+                                        <!-- <strong>Price After:</strong> ${{ message.price_after }}<br> -->
                                         <strong>Date:</strong> {{ message.date.strftime('%Y-%m-%d %H:%M:%S') }}
                                     </p>
                                 </div>
@@ -154,6 +155,33 @@
             <p>No records found.</p>
         {% endif %}
     </div>
+
+    <footer class="bg-light text-center text-lg-start">
+        <div class="text-center p-3">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#infoModal">More info</a>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoModalLabel">More info</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Data is retrieved from Coles at the date and time specified on each product record. Prices may differ per store.</p>
+                    <p>No data is collected from the website user, other than baseline data collected by hosting services.</p>
+                    <p>"Down Down" hand image is &copy; Coles.</p>
+                    <p>You can contact me at <samp>*@pricesareup.com</samp></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     
     <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
         <div class="modal-dialog">
