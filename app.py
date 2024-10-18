@@ -4,6 +4,7 @@ from datetime import datetime as dt, timedelta
 from dotenv import load_dotenv
 import os
 from bson.regex import Regex
+from zoneinfo import ZoneInfo
 
 
 from pymongo.mongo_client import MongoClient
@@ -96,6 +97,10 @@ def index():
             .skip((page - 1) * per_page)
             .limit(per_page)
         )
+
+        for message in messages:
+            if message.get("date"):
+                message["date"] = message["date"].replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("Australia/Sydney"))
 
         return render_template(
             'index.html',
