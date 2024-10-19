@@ -55,7 +55,8 @@ a.text-decoration-none .card {
 
 
 .btn-custom-white.active {
-    background-color: #e0e0e0; 
+    /* background-color: #e0e0e0;  */
+    background-color: #E01A22;
     color: white;
 }
 
@@ -84,4 +85,14 @@ a.text-decoration-none .card {
 .floating-image {
     width: 150px;
     animation: float 3s ease-in-out infinite;
+}
+
+.pagination > .active > span {
+    color: white;
+    background-color: #E01A22;
+    border-color: #E01A22
+}
+
+.pagination a {
+    color: #343a40;
 }

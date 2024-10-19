@@ -77,22 +77,22 @@
         
 
         {% if selected_date or search_query %}
-            <h3 class="mb-3">
+            <h4 class="mb-3">
                 {% if selected_date and search_query %}
-                    All-Time Highs on {{ selected_date }} matching "{{ search_query }}"
+                    All-time highs matching "{{ search_query }}" on {{ selected_date }}
                 {% elif selected_date %}
-                    All-Time Highs on {{ selected_date }}
+                    All-time highs on {{ selected_date }}
                 {% elif search_query %}
-                    All-Time Highs matching "{{ search_query }}"
+                    All-time highs matching "{{ search_query }}"
                 {% endif %}
-            </h3>
+            </h4>
         {% endif %}
 
         {% if messages %}
             <div class="row">
                 {% for message in messages %}
                     <div class="col-lg-4 col-md-6 mb-4">
-                        <a href="https://coles.com.au/product/{{ message.item_id }}" class="text-decoration-none text-dark">
+                        <a href="https://coles.com.au/product/{{ message.item_id }}" class="text-decoration-none text-dark" target="_blank">
                             <div class="card h-100 shadow-sm">
                                 {% if message.image_url %}
                                     <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy">

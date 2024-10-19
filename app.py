@@ -23,6 +23,9 @@ client = MongoClient(MONGODB_URI)
 db = client['coles']
 coles_updates_collection = db['coles_updates']
 
+sydney_tz = ZoneInfo("Australia/Sydney")
+utc_tz = ZoneInfo("UTC")
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     selected_date = None
@@ -32,7 +35,9 @@ def index():
     per_page = 9  # Adjust based on desired cards per page
 
     # Calculate the last seven days
-    today = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    # today = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    # today = dt.utcnow().replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("Australia/Sydney"))
+    today = dt.now(sydney_tz).replace(hour=0, minute=0, second=0)
     last_seven_days = [today - timedelta(days=i) for i in range(0, 7)]
     
     # Assign labels
@@ -64,18 +69,25 @@ def index():
 
         if selected_date:
             try:
-                # Convert to datetime object
-                date_obj = dt.strptime(selected_date, '%Y-%m-%d')
-                # Define the start and end of the selected day
-                start_day = dt(date_obj.year, date_obj.month, date_obj.day)
-                end_day = start_day + timedelta(days=1)
+                # Convert selected date (Sydney time) to a datetime object
+                date_obj = dt.strptime(selected_date, '%Y-%m-%d').replace(tzinfo=sydney_tz)
+                
+                # Define the start and end of the selected day in Sydney time
+                start_day_sydney = date_obj
+                end_day_sydney = start_day_sydney + timedelta(days=1)
+                
+                # Convert start and end of day to UTC for querying
+                start_day_utc = start_day_sydney.astimezone(utc_tz)
+                end_day_utc = end_day_sydney.astimezone(utc_tz)
+                
                 query["date"] = {
-                    "$gte": start_day,
-                    "$lt": end_day
+                    "$gte": start_day_utc,
+                    "$lt": end_day_utc
                 }
             except ValueError:
                 # Invalid date format; optionally handle the error
                 selected_date = None
+
 
         if search_query:
             # Create a case-insensitive regex for partial matching
@@ -89,6 +101,8 @@ def index():
         # Retrieve total count for pagination
         total_messages = coles_updates_collection.count_documents(query)
         total_pages = (total_messages + per_page - 1) // per_page
+
+        print(query, flush=True)
 
         # Fetch records with pagination
         messages = list(
