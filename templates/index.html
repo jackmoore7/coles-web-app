@@ -93,7 +93,7 @@
                         <a href="https://coles.com.au/product/{{ message.item_id }}" class="text-decoration-none text-dark" target="_blank">
                             <div class="card h-100 shadow-sm">
                                 {% if message.image_url %}
-                                    <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy">
+                                    <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">
                                 {% else %}
                                     <img src="{{ url_for('static', filename='placeholder.png') }}" class="card-img-top" alt="No Image Available" loading="lazy">
                                 {% endif %}
