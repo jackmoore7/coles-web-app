@@ -25,11 +25,23 @@
             font-size: 18px;
         }
     </style>
+    <script>
+        window.onload = function() {
+            var remaining = {{ remaining }};
+            function updateCountdown() {
+                if (remaining > 0) {
+                    remaining--;
+                    document.getElementById("countdown").innerText = remaining;
+                }
+            }
+            setInterval(updateCountdown, 1000);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
         <h1>Congratulations!</h1>
-        <p>You've been placed in 404 jail. You'll be free in {{ remaining }} seconds.</p>
+        <p>You've been placed in 404 jail. You'll be free in <span id="countdown">{{ remaining }}</span> seconds.</p>
     </div>
 </body>
 </html>
