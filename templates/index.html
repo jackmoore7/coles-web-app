@@ -73,17 +73,14 @@
             </div>
         </div>
 
-        
-        
-
         {% if selected_date or search_query %}
             <h4 class="mb-3">
                 {% if selected_date and search_query %}
-                    All-time highs matching "{{ search_query }}" on {{ selected_date }}
+                    {{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }} matching "{{ search_query }}" on {{ selected_date }}
                 {% elif selected_date %}
-                    All-time highs on {{ selected_date }}
+                    {{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }} on {{ selected_date }}
                 {% elif search_query %}
-                    All-time highs matching "{{ search_query }}"
+                    {{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }} matching "{{ search_query }}"
                 {% endif %}
             </h4>
         {% endif %}
@@ -130,15 +127,47 @@
                             <span class="page-link" aria-hidden="true">&laquo;</span>
                         </li>
                     {% endif %}
-
-                    {% for p in range(1, total_pages + 1) %}
+                    {% set window_size = 5 %}
+                    {% set half_window = window_size // 2 %}
+                    
+                    {% if total_pages <= window_size %}
+                        {% set start_page = 1 %}
+                        {% set end_page = total_pages %}
+                    {% else %}
+                        {% if page <= half_window %}
+                            {% set start_page = 1 %}
+                            {% set end_page = window_size %}
+                        {% elif page + half_window > total_pages %}
+                            {% set start_page = total_pages - window_size + 1 %}
+                            {% set end_page = total_pages %}
+                        {% else %}
+                            {% set start_page = page - half_window %}
+                            {% set end_page = page + half_window %}
+                        {% endif %}
+                    {% endif %}
+                    {% if start_page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('index', page=1, date=selected_date, search=search_query) }}">1</a>
+                        </li>
+                        {% if start_page > 2 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endif %}
+                    {% for p in range(start_page, end_page + 1) %}
                         {% if p == page %}
                             <li class="page-item active"><span class="page-link">{{ p }}</span></li>
                         {% else %}
                             <li class="page-item"><a class="page-link" href="{{ url_for('index', page=p, date=selected_date, search=search_query) }}">{{ p }}</a></li>
                         {% endif %}
                     {% endfor %}
-
+                    {% if end_page < total_pages %}
+                        {% if end_page < total_pages - 1 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('index', page=total_pages, date=selected_date, search=search_query) }}">{{ total_pages }}</a>
+                        </li>
+                    {% endif %}
                     {% if page < total_pages %}
                         <li class="page-item">
                             <a class="page-link" href="{{ url_for('index', page=page+1, date=selected_date, search=search_query) }}" aria-label="Next">
@@ -151,7 +180,7 @@
                         </li>
                     {% endif %}
                 </ul>
-            </nav>
+            </nav>            
         {% else %}
             <p>No records found.</p>
         {% endif %}

@@ -50,7 +50,7 @@ def index():
         else:
             label = f"{i} Days Ago"
         date_buttons.append({
-            'date_str': date.strftime('%Y-%m-%d'),
+            'date_str': date.strftime('%d/%m/%Y'),
             'label': label
         })
 
@@ -70,7 +70,7 @@ def index():
         if selected_date:
             try:
                 # Convert selected date (Sydney time) to a datetime object
-                date_obj = dt.strptime(selected_date, '%Y-%m-%d').replace(tzinfo=sydney_tz)
+                date_obj = dt.strptime(selected_date, '%d/%m/%Y').replace(tzinfo=sydney_tz)
                 
                 # Define the start and end of the selected day in Sydney time
                 start_day_sydney = date_obj
@@ -119,6 +119,7 @@ def index():
         return render_template(
             'index.html',
             messages=messages,
+            total_messages=total_messages,
             selected_date=selected_date,
             search_query=search_query,
             page=page,
