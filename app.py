@@ -1,10 +1,13 @@
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask, render_template, request, url_for, redirect, make_response
 from pymongo import MongoClient
 from datetime import datetime as dt, timedelta
 from dotenv import load_dotenv
 import os
 from bson.regex import Regex
 from zoneinfo import ZoneInfo
+import threading
+from collections import defaultdict
+import time
 
 
 from pymongo.mongo_client import MongoClient
@@ -25,6 +28,85 @@ coles_updates_collection = db['coles_updates']
 
 sydney_tz = ZoneInfo("Australia/Sydney")
 utc_tz = ZoneInfo("UTC")
+
+# In-memory storage for tracking
+failed_404_counts = defaultdict(int)  # Tracks total 404s per IP
+banned_ips = {}  # Stores IPs with their ban expiry times
+
+# Lock for thread-safe operations
+lock = threading.Lock()
+
+# Configuration
+MAX_TOTAL_404 = 0  # Number of 404s to trigger a ban
+BAN_DURATION_SECONDS = 600  # Ban duration (e.g., 10 minutes)
+
+
+def get_client_ip():
+    """
+    Retrieves the client's IP address, considering possible proxy headers.
+    """
+    if request.headers.get('X-Forwarded-For'):
+        # If behind a proxy (e.g., Nginx), use the first IP in the X-Forwarded-For header
+        ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    else:
+        ip = request.remote_addr
+    return ip
+
+
+@app.before_request
+def block_banned_ips():
+    """
+    Blocks requests from IPs that are currently banned.
+    """
+    client_ip = get_client_ip()
+    current_time = time.time()
+    with lock:
+        if client_ip in banned_ips:
+            ban_expiry = banned_ips[client_ip]
+            if current_time < ban_expiry:
+                # IP is still banned
+                remaining = int(ban_expiry - current_time)
+                return make_response(
+                    render_template(
+                        "banned.html",
+                        remaining=remaining
+                    ), 
+                    403
+                )
+            else:
+                # Ban has expired
+                del banned_ips[client_ip]
+                failed_404_counts[client_ip] = 0  # Reset the 404 count
+
+
+@app.after_request
+def track_404s(response):
+    """
+    Tracks 404 responses and bans IPs after reaching the total 404 threshold.
+    """
+    if response.status_code == 404:
+        client_ip = get_client_ip()
+        with lock:
+            failed_404_counts[client_ip] += 1
+            app.logger.info(f"IP {client_ip} has {failed_404_counts[client_ip]} total 404(s).")
+            if failed_404_counts[client_ip] >= MAX_TOTAL_404:
+                banned_until = time.time() + BAN_DURATION_SECONDS
+                banned_ips[client_ip] = banned_until
+                app.logger.warning(
+                    f"IP {client_ip} has been temporarily banned until {time.ctime(banned_until)} "
+                    f"after {failed_404_counts[client_ip]} total 404(s)."
+                )
+                # return make_response(
+                #     "Your IP has been temporarily banned due to multiple failed requests.", 403.
+                # )
+                return make_response(
+                    render_template(
+                        "banned.html",
+                        remaining=600
+                    ), 
+                    403
+                )
+    return response
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
