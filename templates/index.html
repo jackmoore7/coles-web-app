@@ -3,35 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <title>pricesareup.com</title>
-    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="container my-5">
-        <!-- <h1 class="mb-4 text-center">Coles All-Time Highs</h1> -->
         <a href="/">
-        <div class="d-flex justify-content-center mb-4">
-            <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
-        </div>
+            <div class="d-flex justify-content-center mb-4">
+                <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+            </div>
         </a>
         <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
-        
-        
+
         <form method="POST" class="mb-4">
             <div class="input-group">
-                <input type="search" class="form-control" name="search" placeholder="Search by Brand, Name, or ID" {% if search_query %} value="{{ search_query }}" {% endif %} aria-label="Search">
+                <input type="search" class="form-control" name="search" placeholder="Search by Brand, Name, or ID"
+                       {% if search_query %} value="{{ search_query }}" {% endif %} aria-label="Search">
                 <button class="btn btn-outline-secondary" type="submit">Search</button>
             </div>
         </form>
-        
+
         <div class="mb-4 d-flex justify-content-center">
             <div class="btn-group flex-wrap d-none d-md-flex" role="group" aria-label="Date range">
                 {% for button in date_buttons %}
-                    <button type="submit" form="date-form-{{ loop.index0 }}" 
-                        class="btn btn-custom-white mb-2 mx-1
-                        {% if selected_date == button.date_str %} active {% endif %}">
+                    <button type="submit" form="date-form-{{ loop.index0 }}"
+                            class="btn btn-custom-white mb-2 mx-1
+                            {% if selected_date == button.date_str %} active {% endif %}">
                         {{ button.label }}
                     </button>
                     <form id="date-form-{{ loop.index0 }}" method="POST" style="display: none;">
@@ -54,7 +53,7 @@
                     {% for button in date_buttons %}
                         <li>
                             <a class="dropdown-item {% if selected_date == button.date_str %} active {% endif %}"
-                            href="#" onclick="document.getElementById('date-form-{{ loop.index0 }}').submit();">
+                               href="#" onclick="document.getElementById('date-form-{{ loop.index0 }}').submit();">
                                 {{ button.label }}
                             </a>
                             <form id="date-form-{{ loop.index0 }}" method="POST" style="display: none;">
@@ -104,9 +103,7 @@
                                     <p class="card-text">
                                         <h5 class="card-title">${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }} (+{{ ((message.price_after - message.price_before) / message.price_before * 100)|round(2) }}%)</h5>
                                         <strong>Item ID:</strong> {{ message.item_id }}<br>
-                                        <!-- <strong>Price Before:</strong> ${{ message.price_before }}<br> -->
-                                        <!-- <strong>Price After:</strong> ${{ message.price_after }}<br> -->
-                                        <strong>Date:</strong> {{ message.date.strftime('%d/%m/%Y %I:%M %p')}}
+                                        <strong>Date:</strong> <span class="date" data-utc="{{ message.date_iso }}">Loading...</span>
                                     </p>
                                 </div>
                             </div>
@@ -114,7 +111,7 @@
                     </div>
                 {% endfor %}
             </div>
-            
+
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center">
                     {% if page > 1 %}
@@ -128,6 +125,7 @@
                             <span class="page-link" aria-hidden="true">&laquo;</span>
                         </li>
                     {% endif %}
+                    
                     {% set window_size = 5 %}
                     {% set half_window = window_size // 2 %}
                     
@@ -146,6 +144,7 @@
                             {% set end_page = page + half_window %}
                         {% endif %}
                     {% endif %}
+                    
                     {% if start_page > 1 %}
                         <li class="page-item">
                             <a class="page-link" href="{{ url_for('index', page=1, date=selected_date, search=search_query) }}">1</a>
@@ -154,6 +153,7 @@
                             <li class="page-item disabled"><span class="page-link">...</span></li>
                         {% endif %}
                     {% endif %}
+                    
                     {% for p in range(start_page, end_page + 1) %}
                         {% if p == page %}
                             <li class="page-item active"><span class="page-link">{{ p }}</span></li>
@@ -161,6 +161,7 @@
                             <li class="page-item"><a class="page-link" href="{{ url_for('index', page=p, date=selected_date, search=search_query) }}">{{ p }}</a></li>
                         {% endif %}
                     {% endfor %}
+                    
                     {% if end_page < total_pages %}
                         {% if end_page < total_pages - 1 %}
                             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -169,6 +170,7 @@
                             <a class="page-link" href="{{ url_for('index', page=total_pages, date=selected_date, search=search_query) }}">{{ total_pages }}</a>
                         </li>
                     {% endif %}
+                    
                     {% if page < total_pages %}
                         <li class="page-item">
                             <a class="page-link" href="{{ url_for('index', page=page+1, date=selected_date, search=search_query) }}" aria-label="Next">
@@ -181,7 +183,7 @@
                         </li>
                     {% endif %}
                 </ul>
-            </nav>            
+            </nav>
         {% else %}
             <p>No records found.</p>
         {% endif %}
@@ -213,11 +215,10 @@
         </div>
     </div>
 
-    
     <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST">
+                <form id="custom-date-form" method="POST">
                     <div class="modal-header">
                         <h5 class="modal-title" id="customDateModalLabel">Select Custom Date</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -225,7 +226,9 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="customDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="customDate" name="date" required>
+                            <input type="date" class="form-control" id="customDate" required>
+                            <!-- Hidden input to store the formatted date -->
+                            <input type="hidden" name="date" id="formattedDate">
                         </div>
                         {% if search_query %}
                             <input type="hidden" name="search" value="{{ search_query }}">
@@ -239,7 +242,100 @@
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Timezone Detection and Cookie Setting
+            function setCookie(name, value, days) {
+                let expires = "";
+                if (days) {
+                    const date = new Date();
+                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                    expires = "; expires=" + date.toUTCString();
+                }
+                document.cookie = name + "=" + (value || "") + expires + "; path=/";
+            }
+            
+            function getCookie(name) {
+                let nameEQ = name + "=";
+                let ca = document.cookie.split(';');
+                for(let i=0;i < ca.length;i++) {
+                    let c = ca[i];
+                    while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+                }
+                return null;
+            }
+
+            const timezoneCookie = getCookie('timezone');
+            if (!timezoneCookie) {
+                const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                console.log(`Detected Timezone: ${userTimeZone}`);
+                setCookie('timezone', userTimeZone, 365);
+                // Reload the page after setting the timezone cookie
+                window.location.reload();
+            } else {
+                console.log(`Existing Timezone Cookie: ${timezoneCookie}`);
+            }
+
+            // Local Time Conversion for Date Elements
+            const dateElements = document.querySelectorAll('.date');
+            // console.log(`Found ${dateElements.length} date elements to convert.`);
+            dateElements.forEach(function(el, index) {
+                const utcDateStr = el.getAttribute('data-utc');
+                // console.log(`Element ${index + 1}: Original UTC Date String = ${utcDateStr}`);
+                if (utcDateStr) {
+                    const dateObj = new Date(utcDateStr);
+                    if (!isNaN(dateObj)) {
+                        // Options for formatting the date
+                        const options = {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true,
+                        };
+                        // Convert to local time string
+                        const localDateStr = dateObj.toLocaleString(undefined, options);
+                        el.textContent = localDateStr;
+                        // console.log(`Element ${index + 1}: Converted Local Date = ${localDateStr}`);
+                    } else {
+                        el.textContent = "Invalid Date";
+                        console.error(`Element ${index + 1}: Invalid Date Object for UTC Date String = ${utcDateStr}`);
+                    }
+                } else {
+                    el.textContent = "No Date Provided";
+                    console.warn(`Element ${index + 1}: No UTC Date String Provided`);
+                }
+            });
+
+            // Handle custom date form submission
+            const customDateForm = document.getElementById('custom-date-form');
+            customDateForm.addEventListener('submit', function(event) {
+                const dateInput = document.getElementById('customDate').value; // yyyy-mm-dd
+                if (!dateInput) {
+                    // No date selected, prevent submission
+                    alert("Please select a date.");
+                    event.preventDefault();
+                    return;
+                }
+                const [year, month, day] = dateInput.split('-');
+                // Validate date parts
+                if (!year || !month || !day) {
+                    alert("Invalid date format.");
+                    event.preventDefault();
+                    return;
+                }
+                const formattedDate = `${day}/${month}/${year}`;
+                console.log(`Custom Date Selected: ${formattedDate}`);
+                document.getElementById('formattedDate').value = formattedDate;
+                // Allow the form to submit
+            });
+        });
+    </script>
 </body>
 </html>

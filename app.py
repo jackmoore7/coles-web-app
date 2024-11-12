@@ -4,15 +4,10 @@ from datetime import datetime as dt, timedelta
 from dotenv import load_dotenv
 import os
 from bson.regex import Regex
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import threading
 from collections import defaultdict
 import time
-
-
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-
 
 # Load environment variables
 load_dotenv('config.env')
@@ -26,8 +21,8 @@ client = MongoClient(MONGODB_URI)
 db = client['coles']
 coles_updates_collection = db['coles_updates']
 
-sydney_tz = ZoneInfo("Australia/Sydney")
-utc_tz = ZoneInfo("UTC")
+# Time Zones
+utc_tz = ZoneInfo("UTC")  # UTC timezone
 
 # In-memory storage for tracking
 failed_404_counts = defaultdict(int)  # Tracks total 404s per IP
@@ -37,9 +32,8 @@ banned_ips = {}  # Stores IPs with their ban expiry times
 lock = threading.Lock()
 
 # Configuration
-MAX_TOTAL_404 = 0  # Number of 404s to trigger a ban
-BAN_DURATION_SECONDS = 600  # Ban duration (e.g., 10 minutes)
-
+MAX_TOTAL_404 = 1  # Number of 404s to trigger a ban
+BAN_DURATION_SECONDS = 300  # Ban duration (e.g., 10 minutes)
 
 def get_client_ip():
     """
@@ -51,7 +45,6 @@ def get_client_ip():
     else:
         ip = request.remote_addr
     return ip
-
 
 @app.before_request
 def block_banned_ips():
@@ -70,14 +63,13 @@ def block_banned_ips():
                     render_template(
                         "banned.html",
                         remaining=remaining
-                    ), 
+                    ),
                     403
                 )
             else:
                 # Ban has expired
                 del banned_ips[client_ip]
                 failed_404_counts[client_ip] = 0  # Reset the 404 count
-
 
 @app.after_request
 def track_404s(response):
@@ -96,14 +88,8 @@ def track_404s(response):
                     f"IP {client_ip} has been temporarily banned until {time.ctime(banned_until)} "
                     f"after {failed_404_counts[client_ip]} total 404(s)."
                 )
-                # return make_response(
-                #     "Your IP has been temporarily banned due to multiple failed requests.", 403.
-                # )
                 return make_response(
-                    render_template(
-                        "banned.html",
-                        remaining=600
-                    ), 
+                    render_template("banned.html", remaining=BAN_DURATION_SECONDS),
                     403
                 )
     return response
@@ -116,12 +102,25 @@ def index():
     page = request.args.get('page', 1, type=int)
     per_page = 9  # Adjust based on desired cards per page
 
-    # Calculate the last seven days
-    # today = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    # today = dt.utcnow().replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("Australia/Sydney"))
-    today = dt.now(sydney_tz).replace(hour=0, minute=0, second=0)
+    # Read timezone from cookie
+    timezone_str = request.cookies.get('timezone')
+    if timezone_str:
+        try:
+            user_tz = ZoneInfo(timezone_str)
+            app.logger.debug(f"User timezone: {timezone_str}")
+        except ZoneInfoNotFoundError:
+            app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
+            user_tz = utc_tz
+    else:
+        # No timezone cookie set. The client-side JavaScript should have set it and reloaded.
+        # In this case, default to UTC or handle gracefully
+        app.logger.debug("No timezone cookie found. Defaulting to UTC.")
+        user_tz = utc_tz
+
+    # Calculate the last seven days based on user's timezone
+    today = dt.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     last_seven_days = [today - timedelta(days=i) for i in range(0, 7)]
-    
+
     # Assign labels
     date_buttons = []
     for i, date in enumerate(last_seven_days):
@@ -151,17 +150,20 @@ def index():
 
         if selected_date:
             try:
-                # Convert selected date (Sydney time) to a datetime object
-                date_obj = dt.strptime(selected_date, '%d/%m/%Y').replace(tzinfo=sydney_tz)
-                
-                # Define the start and end of the selected day in Sydney time
-                start_day_sydney = date_obj
-                end_day_sydney = start_day_sydney + timedelta(days=1)
-                
+                # Convert selected date (dd/mm/yyyy) to a datetime object
+                date_obj = dt.strptime(selected_date, '%d/%m/%Y')
+
+                # Make date_obj aware with user's timezone
+                date_obj = date_obj.replace(tzinfo=user_tz)
+
+                # Define the start and end of the selected day in user's timezone
+                start_day_user = date_obj
+                end_day_user = start_day_user + timedelta(days=1)
+
                 # Convert start and end of day to UTC for querying
-                start_day_utc = start_day_sydney.astimezone(utc_tz)
-                end_day_utc = end_day_sydney.astimezone(utc_tz)
-                
+                start_day_utc = start_day_user.astimezone(utc_tz)
+                end_day_utc = end_day_user.astimezone(utc_tz)
+
                 query["date"] = {
                     "$gte": start_day_utc,
                     "$lt": end_day_utc
@@ -169,7 +171,6 @@ def index():
             except ValueError:
                 # Invalid date format; optionally handle the error
                 selected_date = None
-
 
         if search_query:
             # Create a case-insensitive regex for partial matching
@@ -184,7 +185,7 @@ def index():
         total_messages = coles_updates_collection.count_documents(query)
         total_pages = (total_messages + per_page - 1) // per_page
 
-        print(query, flush=True)
+        app.logger.debug(f"Query: {query}")
 
         # Fetch records with pagination
         messages = list(
@@ -196,7 +197,21 @@ def index():
 
         for message in messages:
             if message.get("date"):
-                message["date"] = message["date"].replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("Australia/Sydney"))
+                # Ensure the date is timezone-aware and in UTC
+                date_obj = message["date"]
+                if date_obj.tzinfo is None:
+                    # Assume UTC if timezone-naive
+                    date_obj = date_obj.replace(tzinfo=utc_tz)
+                    app.logger.warning(f"Message ID {message.get('item_id')} was timezone-naive. Setting to UTC.")
+                else:
+                    # Convert to UTC if not already
+                    date_obj = date_obj.astimezone(utc_tz)
+
+                # Format the date in ISO 8601
+                message["date_iso"] = date_obj.isoformat()
+
+                # Log the date_iso for debugging
+                app.logger.debug(f"Message ID {message.get('item_id')} - date_iso: {message['date_iso']}")
 
         return render_template(
             'index.html',
