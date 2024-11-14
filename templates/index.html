@@ -9,6 +9,18 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
+    <div id="noscriptCookiesBanner" class="alert alert-warning fade show text-center d-none" role="alert">
+        <strong>Heads up! Your browser is blocking cookies and/or JavaScript. Some buttons might not work, and dates might be displayed in UTC instead of your local timezone.</strong>
+    </div>
+
+    <noscript>
+        <style>
+            #noscriptCookiesBanner {
+                display: block !important;
+            }
+        </style>
+    </noscript>
+
     <div class="container my-5">
         <a href="/">
             <div class="d-flex justify-content-center mb-4">
@@ -103,7 +115,9 @@
                                     <p class="card-text">
                                         <h5 class="card-title">${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }} (+{{ ((message.price_after - message.price_before) / message.price_before * 100)|round(2) }}%)</h5>
                                         <strong>Item ID:</strong> {{ message.item_id }}<br>
-                                        <strong>Date:</strong> <span class="date" data-utc="{{ message.date_iso }}">Loading...</span>
+                                        {# <strong>Date:</strong> <span class="date" data-utc="{{ message.date_iso }}">{{ message.date_formatted_utc }}</span> #}
+                                        <strong>Date:</strong> 
+                                        <span class="date">{{ message.date_formatted_local }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -272,46 +286,25 @@
             const timezoneCookie = getCookie('timezone');
             if (!timezoneCookie) {
                 const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                console.log(`Detected Timezone: ${userTimeZone}`);
+                console.log(`Detected timezone: ${userTimeZone}`);
                 setCookie('timezone', userTimeZone, 365);
-                // Reload the page after setting the timezone cookie
-                window.location.reload();
+                if (getCookie('timezone') !== null) {
+                    console.log(`Issued a timezone cookie: ${userTimeZone}`)
+                    window.location.reload();
+                } else {
+                    console.log(`Cookies have been disabled`);
+                    showNoscriptCookiesBanner();
+                }  
             } else {
-                console.log(`Existing Timezone Cookie: ${timezoneCookie}`);
+                console.log(`Existing timezone cookie: ${timezoneCookie}`);
             }
 
-            // Local Time Conversion for Date Elements
-            const dateElements = document.querySelectorAll('.date');
-            // console.log(`Found ${dateElements.length} date elements to convert.`);
-            dateElements.forEach(function(el, index) {
-                const utcDateStr = el.getAttribute('data-utc');
-                // console.log(`Element ${index + 1}: Original UTC Date String = ${utcDateStr}`);
-                if (utcDateStr) {
-                    const dateObj = new Date(utcDateStr);
-                    if (!isNaN(dateObj)) {
-                        // Options for formatting the date
-                        const options = {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: true,
-                        };
-                        // Convert to local time string
-                        const localDateStr = dateObj.toLocaleString(undefined, options);
-                        el.textContent = localDateStr;
-                        // console.log(`Element ${index + 1}: Converted Local Date = ${localDateStr}`);
-                    } else {
-                        el.textContent = "Invalid Date";
-                        console.error(`Element ${index + 1}: Invalid Date Object for UTC Date String = ${utcDateStr}`);
-                    }
-                } else {
-                    el.textContent = "No Date Provided";
-                    console.warn(`Element ${index + 1}: No UTC Date String Provided`);
-                }
-            });
+            function showNoscriptCookiesBanner() {
+            const banner = document.getElementById('noscriptCookiesBanner');
+            if (banner) {
+                banner.classList.remove('d-none');
+            }
+            }
 
             // Handle custom date form submission
             const customDateForm = document.getElementById('custom-date-form');

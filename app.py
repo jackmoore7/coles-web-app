@@ -197,21 +197,18 @@ def index():
 
         for message in messages:
             if message.get("date"):
-                # Ensure the date is timezone-aware and in UTC
                 date_obj = message["date"]
                 if date_obj.tzinfo is None:
-                    # Assume UTC if timezone-naive
                     date_obj = date_obj.replace(tzinfo=utc_tz)
-                    app.logger.warning(f"Message ID {message.get('item_id')} was timezone-naive. Setting to UTC.")
                 else:
-                    # Convert to UTC if not already
                     date_obj = date_obj.astimezone(utc_tz)
 
-                # Format the date in ISO 8601
                 message["date_iso"] = date_obj.isoformat()
 
-                # Log the date_iso for debugging
-                app.logger.debug(f"Message ID {message.get('item_id')} - date_iso: {message['date_iso']}")
+                message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
+
+                local_date_obj = date_obj.astimezone(user_tz)
+                message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
 
         return render_template(
             'index.html',
