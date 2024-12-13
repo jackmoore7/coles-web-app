@@ -101,7 +101,7 @@
             <div class="row">
                 {% for message in messages %}
                     <div class="col-lg-4 col-md-6 mb-4">
-                        <a href="https://coles.com.au/product/{{ message.item_id }}" class="text-decoration-none text-dark" target="_blank">
+                        <a href="{{ url_for('item', item_id=message.item_id) }}" class="text-decoration-none text-dark">
                             <div class="card h-100 shadow-sm">
                                 {% if message.image_url %}
                                     <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">

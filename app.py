@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, url_for, redirect, make_response
+from flask import Flask, render_template, request, url_for, redirect, make_response, abort
 from pymongo import MongoClient
 from datetime import datetime as dt, timedelta
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ lock = threading.Lock()
 
 # Configuration
 MAX_TOTAL_404 = 1  # Number of 404s to trigger a ban
-BAN_DURATION_SECONDS = 300  # Ban duration (e.g., 10 minutes)
+BAN_DURATION_SECONDS = 1  # Ban duration (e.g., 10 minutes)
 
 def get_client_ip():
     """
@@ -173,13 +173,35 @@ def index():
                 selected_date = None
 
         if search_query:
-            # Create a case-insensitive regex for partial matching
-            regex = Regex(f'.*{search_query}.*', 'i')  # 'i' for case-insensitive
-            query["$or"] = [
-                {"item_brand": regex},
-                {"item_name": regex},
-                {"item_id": regex}
+            app.logger.debug(f"Search query: {search_query}")
+            or_conditions = [
+                {"item_brand": Regex(f'.*{search_query}.*', 'i')},
+                {"item_name": Regex(f'.*{search_query}.*', 'i')}
             ]
+
+            # Log sample item_id
+            sample_doc = coles_updates_collection.find_one()
+            if sample_doc and 'item_id' in sample_doc:
+                app.logger.debug(f"Sample item_id: {sample_doc['item_id']} (type: {type(sample_doc['item_id'])})")
+
+            # Attempt numeric match for item_id
+            try:
+                search_number = int(search_query)
+                or_conditions.append({"item_id": search_number})
+                app.logger.debug(f"Added numeric item_id condition with value: {search_number}")
+            except ValueError:
+                app.logger.debug("Search query is not a number, skipping numeric item_id condition.")
+
+            query["$or"] = or_conditions
+
+        # if search_query:
+        #     # Create a case-insensitive regex for partial matching
+        #     regex = Regex(f'.*{search_query}.*', 'i')  # 'i' for case-insensitive
+        #     query["$or"] = [
+        #         {"item_brand": regex},
+        #         {"item_name": regex},
+        #         {"item_id": regex}
+        #     ]
 
         # Retrieve total count for pagination
         total_messages = coles_updates_collection.count_documents(query)
@@ -220,6 +242,93 @@ def index():
             total_pages=total_pages,
             date_buttons=date_buttons  # Pass the list of date buttons to the template
         )
+
+@app.route('/item/<int:item_id>')
+def item(item_id):
+    # Fetch all records for the given item_id, sorted by date ascending
+    item_records = list(coles_updates_collection.find({"item_id": item_id}).sort("date", 1))
+
+    if not item_records:
+        abort(404)
+
+    # Extract item details from the first record
+    first_record = item_records[0]
+    item_brand = first_record.get('item_brand', 'Unknown Brand')
+    item_name = first_record.get('item_name', 'Unknown Name')
+    image_url = first_record.get('image_url', None)
+
+    # Timezone handling
+    timezone_str = request.cookies.get('timezone')
+    user_tz = utc_tz  # Default timezone
+    if timezone_str:
+        try:
+            user_tz = ZoneInfo(timezone_str)
+            app.logger.debug(f"User timezone: {timezone_str}")
+        except ZoneInfoNotFoundError:
+            app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
+
+    # Prepare data for the graph
+    dates = []
+    prices = []
+    for record in item_records:
+        if record.get("date"):
+            date_obj = record["date"].replace(tzinfo=utc_tz).astimezone(user_tz)
+            formatted_date = date_obj.strftime('%d/%m/%Y')
+            dates.append(formatted_date)
+            prices.append(record.get("price_after", 0))
+
+    if prices:
+        # Include the initial price_before in the total_prices list
+        initial_price_before = item_records[0].get("price_before", 0)
+        total_prices = [initial_price_before] + prices  # Combine price_before with all price_afters
+        
+        # Calculate Lowest and Highest Prices
+        lowest_price = min(total_prices)
+        highest_price = max(total_prices)
+        
+        # Calculate Percentage Change Between Lowest and Highest
+        percentage_change_extremes = ((highest_price - lowest_price) / lowest_price) * 100 if lowest_price else 0
+        
+        # Calculate Total Price Changes
+        total_price_changes = 0
+        previous_price = initial_price_before
+        for current_price in prices:
+            if previous_price != current_price:
+                total_price_changes += 1
+            previous_price = current_price
+    else:
+        lowest_price = highest_price = percentage_change_extremes = total_price_changes = "N/A"
+
+
+    # Latest price information
+    latest_record = item_records[-1]
+    latest_price_before = latest_record.get("price_before", "N/A")
+    latest_price_after = latest_record.get("price_after", "N/A")
+    change = latest_price_after - latest_price_before if isinstance(latest_price_before, (int, float)) and isinstance(latest_price_after, (int, float)) else "N/A"
+    percentage_change_latest = ((change) / latest_price_before * 100) if isinstance(change, (int, float)) and latest_price_before != 0 else "N/A"
+
+    # External URL
+    item_url = f"https://coles.com.au/product/{item_id}"
+
+    return render_template(
+        'item.html',
+        item_brand=item_brand,
+        item_name=item_name,
+        image_url=image_url,
+        dates=dates,
+        prices=prices,
+        lowest_price=lowest_price,
+        highest_price=highest_price,
+        percentage_change_extremes=percentage_change_extremes,
+        total_price_changes=total_price_changes,  # Passed to template
+        latest_price_before=latest_price_before,
+        latest_price_after=latest_price_after,
+        change=change,
+        percentage_change_latest=percentage_change_latest,
+        item_id=item_id,
+        item_url=item_url,
+        user_tz=user_tz
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

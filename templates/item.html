@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ item_brand }} {{ item_name }} - pricesareup.com</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="noscriptCookiesBanner" class="alert alert-warning fade show text-center d-none" role="alert">
+        <strong>Heads up! Your browser is blocking cookies and/or JavaScript. Some functionalities might not work as intended.</strong>
+    </div>
+
+    <noscript>
+        <style>
+            #noscriptCookiesBanner {
+                display: block !important;
+            }
+        </style>
+    </noscript>
+
+    <div class="container my-5">
+        <!-- Logo and Header -->
+        <a href="/">
+            <div class="d-flex justify-content-center mb-4">
+                <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+            </div>
+        </a>
+
+        <!-- Price History Graph -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <h4>{{ item_brand }} {{ item_name }}</h4>
+                <p class="card-text">
+                    <strong>Item ID:</strong> {{ item_id }}<br>
+                    <strong>Lowest Price:</strong> ${{ lowest_price | round(2) }}<br>
+                    <strong>Highest Price:</strong> ${{ highest_price | round(2) }}<br>
+                    <strong>Percentage Change (Low to High):</strong> 
+                    {% if percentage_change_extremes != "N/A" %}
+                        <span class="badge bg-success">+{{ percentage_change_extremes | round(2) }}%</span>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                    <br>
+                    <strong>Latest Price Before:</strong> ${{ latest_price_before | round(2) }}<br>
+                    <strong>Latest Price After:</strong> ${{ latest_price_after | round(2) }}<br>
+                    <strong>Latest Percentage Change:</strong> 
+                    ${{ change | round(2) }} 
+                    <span class="badge bg-success">+{{ percentage_change_latest | round(2) }}%</span>
+                    <br>
+                    <strong>Total Price Changes:</strong> {{ total_price_changes }}<br>
+                </p>
+                <!-- Back Arrow -->
+                <button onclick="window.history.back();" class="btn btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="M15 8a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 7.5H14.5A.5.5 0 0 1 15 8z"/>
+                    </svg>
+                    Back
+                </button>
+                <a href="{{ item_url }}" class="btn btn-custom-red" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="external-link-icon">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg> View on Coles</a>
+                <canvas id="priceHistoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-light text-center text-lg-start">
+            <div class="text-center p-3">
+                <!-- Optionally, add other footer content here -->
+            </div>
+        </footer>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Timezone Detection and Cookie Setting
+            function setCookie(name, value, days) {
+                let expires = "";
+                if (days) {
+                    const date = new Date();
+                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                    expires = "; expires=" + date.toUTCString();
+                }
+                document.cookie = name + "=" + (value || "") + expires + "; path=/";
+            }
+            
+            function getCookie(name) {
+                let nameEQ = name + "=";
+                let ca = document.cookie.split(';');
+                for(let i=0;i < ca.length;i++) {
+                    let c = ca[i];
+                    while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+                }
+                return null;
+            }
+
+            const timezoneCookie = getCookie('timezone');
+            if (!timezoneCookie) {
+                const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                console.log(`Detected timezone: ${userTimeZone}`);
+                setCookie('timezone', userTimeZone, 365);
+                if (getCookie('timezone') !== null) {
+                    console.log(`Issued a timezone cookie: ${userTimeZone}`)
+                    window.location.reload();
+                } else {
+                    console.log(`Cookies have been disabled`);
+                    showNoscriptCookiesBanner();
+                }  
+            } else {
+                console.log(`Existing timezone cookie: ${timezoneCookie}`);
+            }
+
+            function showNoscriptCookiesBanner() {
+                const banner = document.getElementById('noscriptCookiesBanner');
+                if (banner) {
+                    banner.classList.remove('d-none');
+                }
+            }
+
+            // Initialize Chart.js Graph
+            const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+            const priceHistoryChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ dates | tojson }},
+                    datasets: [{
+                        label: 'Price After ($)',
+                        data: {{ prices | tojson }},
+                        borderColor: 'rgba(224, 26, 34, 1)',
+                        backgroundColor: 'rgba(224, 26, 34, 0.2)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: 'rgba(224, 26, 34, 1)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Price After ($)'
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

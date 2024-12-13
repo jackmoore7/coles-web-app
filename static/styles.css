@@ -46,6 +46,16 @@ a.text-decoration-none .card {
     transition: all 0.2s ease-in-out;
 }
 
+.btn-custom-red {
+    background-color: #E01A22;
+    color: white; 
+    border: 0px;
+}
+
+.btn-custom-red:hover {
+    background-color: #E01A22;
+    color: white;
+}
 
 .btn-custom-white:hover {
     background-color: #f0f0f0;
