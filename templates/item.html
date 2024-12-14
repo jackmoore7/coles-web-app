@@ -1,92 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ item_brand }} {{ item_name }} - pricesareup.com</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <!-- Chart.js CDN -->
+{% extends "base.html" %}
+
+{% block title %}{{ item_brand }} {{ item_name }} - PricesAreUp{% endblock %}
+
+{% block head %}
+    {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <div id="noscriptCookiesBanner" class="alert alert-warning fade show text-center d-none" role="alert">
-        <strong>Heads up! Your browser is blocking cookies and/or JavaScript. Some functionalities might not work as intended.</strong>
-    </div>
+{% endblock %}
 
-    <noscript>
-        <style>
-            #noscriptCookiesBanner {
-                display: block !important;
-            }
-        </style>
-    </noscript>
-
-    <div class="container my-5">
-        <!-- Logo and Header -->
-        <a href="/">
-            <div class="d-flex justify-content-center mb-4">
-                <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
-            </div>
-        </a>
-
-        <!-- Price History Graph -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-body">
-                <h4>{{ item_brand }} {{ item_name }}</h4>
-                <p class="card-text">
-                    <strong>Item ID:</strong> {{ item_id }}<br>
-                    <strong>Lowest Price:</strong> ${{ lowest_price | round(2) }}<br>
-                    <strong>Highest Price:</strong> ${{ highest_price | round(2) }}<br>
-                    <strong>Percentage Change (Low to High):</strong> 
-                    {% if percentage_change_extremes != "N/A" %}
-                        <span class="badge bg-success">+{{ percentage_change_extremes | round(2) }}%</span>
-                    {% else %}
-                        N/A
-                    {% endif %}
-                    <br>
-                    <strong>Latest Price Before:</strong> ${{ latest_price_before | round(2) }}<br>
-                    <strong>Latest Price After:</strong> ${{ latest_price_after | round(2) }}<br>
-                    <strong>Latest Percentage Change:</strong> 
-                    ${{ change | round(2) }} 
-                    <span class="badge bg-success">+{{ percentage_change_latest | round(2) }}%</span>
-                    <br>
-                    <strong>Total Price Changes:</strong> {{ total_price_changes }}<br>
-                </p>
-                <!-- Back Arrow -->
-                <button onclick="window.history.back();" class="btn btn-secondary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M15 8a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 7.5H14.5A.5.5 0 0 1 15 8z"/>
-                    </svg>
-                    Back
+{% block content %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h4>{{ item_brand }} {{ item_name }}</h4>
+            <p class="card-text">
+                <strong>Item ID:</strong> {{ item_id }}<br>
+                <strong>Lowest Price:</strong> ${{ lowest_price | round(2) }}<br>
+                <strong>Highest Price:</strong> ${{ highest_price | round(2) }}<br>
+                <strong>Percentage Change (Low to High):</strong> 
+                {% if percentage_change_extremes != "N/A" %}
+                    <span class="badge bg-success">+{{ percentage_change_extremes | round(2) }}%</span>
+                {% else %}
+                    N/A
+                {% endif %}
+                <br>
+                <strong>Latest Price Before:</strong> ${{ latest_price_before | round(2) }}<br>
+                <strong>Latest Price After:</strong> ${{ latest_price_after | round(2) }}<br>
+                <strong>Latest Percentage Change:</strong> 
+                ${{ change | round(2) }} 
+                <span class="badge bg-success">+{{ percentage_change_latest | round(2) }}%</span>
+                <br>
+                <strong>Total Price Changes:</strong> {{ total_price_changes }}<br>
+            </p>
+            <div class="d-flex justify-content-start mt-3">
+                <button onclick="window.history.back();" class="btn btn-secondary me-2">
+                    <i class="fas fa-arrow-left"></i> Back
                 </button>
                 <a href="{{ item_url }}" class="btn btn-custom-red" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="external-link-icon">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg> View on Coles</a>
-                <canvas id="priceHistoryChart"></canvas>
+                    <i class="fas fa-external-link-alt"></i> View on Coles
+                </a>
             </div>
+            <canvas id="priceHistoryChart" class="mt-4" height="100"></canvas>
         </div>
-
-        <!-- Footer -->
-        <footer class="bg-light text-center text-lg-start">
-            <div class="text-center p-3">
-                <!-- Optionally, add other footer content here -->
-            </div>
-        </footer>
     </div>
+{% endblock %}
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
+{% block scripts %}
+    {{ super() }}
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Timezone Detection and Cookie Setting
             function setCookie(name, value, days) {
                 let expires = "";
                 if (days) {
@@ -131,7 +91,6 @@
                 }
             }
 
-            // Initialize Chart.js Graph
             const ctx = document.getElementById('priceHistoryChart').getContext('2d');
             const priceHistoryChart = new Chart(ctx, {
                 type: 'line',
@@ -187,5 +146,4 @@
             });
         });
     </script>
-</body>
-</html>
+{% endblock %}

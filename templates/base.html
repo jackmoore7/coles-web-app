@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}PricesAreUp - Home{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('no-transition', 'dark-mode');
+            } else {
+                document.documentElement.classList.add('no-transition');
+            }
+        })();
+    </script>
+    
+    {% block head %}
+    {% endblock %}
+</head>
+<body>
+    <div id="noscriptCookiesBanner" class="alert alert-warning fade show text-center d-none" role="alert">
+        <strong>Heads up! Your browser is blocking cookies and/or JavaScript. Some functionalities might not work as intended.</strong>
+    </div>
+
+    <noscript>
+        <style>
+            #noscriptCookiesBanner {
+                display: block !important;
+            }
+        </style>
+    </noscript>
+    <div class="container my-5">
+        <a href="/">
+            <div class="d-flex justify-content-center mb-4">
+                <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+            </div>
+        </a>
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="dark-mode-toggle" id="darkModeToggle" aria-label="Toggle dark mode" role="button" tabindex="0">
+        <svg id="sunIcon" class="sun" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>sun_star [#1268]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1"> <g id="Dribbble-Light-Preview" transform="translate(-220.000000, -2519.000000)"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M166.929,2363.343 C166.538,2362.952 166.538,2362.319 166.929,2361.929 C167.32,2361.538 167.953,2361.538 168.343,2361.929 C168.734,2362.319 168.734,2362.952 168.343,2363.343 C167.953,2363.734 167.32,2363.734 166.929,2363.343 M181.071,2374.657 C181.462,2375.047 181.462,2375.68 181.071,2376.071 C180.681,2376.461 180.047,2376.461 179.657,2376.071 C179.266,2375.68 179.266,2375.047 179.657,2374.657 C180.047,2374.266 180.681,2374.266 181.071,2374.657 M168.343,2374.657 C168.734,2375.047 168.734,2375.68 168.343,2376.071 C167.953,2376.461 167.32,2376.461 166.929,2376.071 C166.538,2375.68 166.538,2375.047 166.929,2374.657 C167.32,2374.266 167.953,2374.266 168.343,2374.657 M181.071,2361.929 C181.462,2362.319 181.462,2362.952 181.071,2363.343 C180.681,2363.734 180.047,2363.734 179.657,2363.343 C179.266,2362.952 179.266,2362.319 179.657,2361.929 C180.047,2361.538 180.681,2361.538 181.071,2361.929 M166,2369 C166,2369.552 165.552,2370 165,2370 C164.448,2370 164,2369.552 164,2369 C164,2368.448 164.448,2368 165,2368 C165.552,2368 166,2368.448 166,2369 M184,2369 C184,2369.552 183.552,2370 183,2370 C182.448,2370 182,2369.552 182,2369 C182,2368.448 182.448,2368 183,2368 C183.552,2368 184,2368.448 184,2369 M175,2378 C175,2378.552 174.552,2379 174,2379 C173.448,2379 173,2378.552 173,2378 C173,2377.448 173.448,2377 174,2377 C174.552,2377 175,2377.448 175,2378 M173,2360 C173,2359.448 173.448,2359 174,2359 C174.552,2359 175,2359.448 175,2360 C175,2360.552 174.552,2361 174,2361 C173.448,2361 173,2360.552 173,2360 M174,2374 C171.243,2374 169,2371.757 169,2369 C169,2366.243 171.243,2364 174,2364 C176.757,2364 179,2366.243 179,2369 C179,2371.757 176.757,2374 174,2374 M174,2362 C170.134,2362 167,2365.134 167,2369 C167,2372.866 170.134,2376 174,2376 C177.866,2376 181,2372.866 181,2369 C181,2365.134 177.866,2362 174,2362"> </path> </g> </g> </g> </g></svg>
+        <svg id="moonIcon" class="moon" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>moon [#1247]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1"> <g id="Dribbble-Light-Preview" transform="translate(-260.000000, -2599.000000)"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M213.978454,2456.99569 C210.914867,2456.99569 208.250138,2455.26697 206.900236,2452.73453 C213.101568,2453.26066 218.261663,2448.1176 217.735531,2441.90024 C220.266974,2443.25014 221.995691,2445.91487 221.995691,2448.97845 C221.995691,2453.39896 218.398958,2456.99569 213.978454,2456.99569 M214.834294,2439 C218.520218,2445.91687 210.972992,2453.55028 204,2449.83429 C204.429924,2454.90419 208.683069,2459 213.978454,2459 C219.513354,2459 224,2454.51335 224,2448.97845 C224,2443.68006 219.901188,2439.42992 214.834294,2439" id="moonIcon"> </path> </g> </g> </g> </g></svg>
+    </div>
+    
+    <footer class="text-center text-lg-start">
+        <div class="text-center p-3">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#infoModal">More info</a>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoModalLabel">More info</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Data is retrieved from Coles at the date and time specified on each product record. Prices may differ per store. Data collection started on 8/9/24.</p>
+                    <p>No data is collected from the website user, other than baseline data collected by hosting services.</p>
+                    <p>"Down Down" hand image is &copy; Coles.</p>
+                    <p>You can contact me at <samp>*@pricesareup.com</samp></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% block scripts %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const themeToggle = document.getElementById('darkModeToggle');
+                const sunIcon = document.getElementById('sunIcon');
+                const moonIcon = document.getElementById('moonIcon');
+                const rootElement = document.documentElement;
+                const noTransitionClass = 'no-transition';
+
+                rootElement.classList.remove(noTransitionClass);
+
+                let currentTheme = localStorage.getItem('theme');
+                if (currentTheme === 'dark') {
+                    rootElement.classList.add('dark-mode');
+                    sunIcon.style.display = 'block';
+                    moonIcon.style.display = 'none';
+                } else {
+                    rootElement.classList.remove('dark-mode');
+                    sunIcon.style.display = 'none';
+                    moonIcon.style.display = 'block';
+                }
+
+                themeToggle.addEventListener('click', function() {
+                    rootElement.classList.toggle('dark-mode');
+                    if (rootElement.classList.contains('dark-mode')) {
+                        localStorage.setItem('theme', 'dark');
+                        sunIcon.style.display = 'block';
+                        moonIcon.style.display = 'none';
+                    } else {
+                        localStorage.setItem('theme', 'light');
+                        sunIcon.style.display = 'none';
+                        moonIcon.style.display = 'block';
+                    }
+                });
+
+                themeToggle.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        themeToggle.click();
+                    }
+                });
+            });            
+        </script>
+    {% endblock %}
+</body>
+</html>

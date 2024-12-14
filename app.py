@@ -33,7 +33,7 @@ lock = threading.Lock()
 
 # Configuration
 MAX_TOTAL_404 = 1  # Number of 404s to trigger a ban
-BAN_DURATION_SECONDS = 1  # Ban duration (e.g., 10 minutes)
+BAN_DURATION_SECONDS = 250  # Ban duration (e.g., 10 minutes)
 
 def get_client_ip():
     """
@@ -100,9 +100,8 @@ def index():
     search_query = None
     messages = []
     page = request.args.get('page', 1, type=int)
-    per_page = 9  # Adjust based on desired cards per page
+    per_page = 9
 
-    # Read timezone from cookie
     timezone_str = request.cookies.get('timezone')
     if timezone_str:
         try:
@@ -112,16 +111,11 @@ def index():
             app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
             user_tz = utc_tz
     else:
-        # No timezone cookie set. The client-side JavaScript should have set it and reloaded.
-        # In this case, default to UTC or handle gracefully
         app.logger.debug("No timezone cookie found. Defaulting to UTC.")
         user_tz = utc_tz
 
-    # Calculate the last seven days based on user's timezone
     today = dt.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     last_seven_days = [today - timedelta(days=i) for i in range(0, 7)]
-
-    # Assign labels
     date_buttons = []
     for i, date in enumerate(last_seven_days):
         if i == 0:
@@ -136,13 +130,10 @@ def index():
         })
 
     if request.method == 'POST':
-        # Handle Date Filtering and Search via POST
         selected_date = request.form.get('date')
         search_query = request.form.get('search')
-        # Redirect to GET with query parameters to support pagination
         return redirect(url_for('index', date=selected_date, search=search_query))
     else:
-        # Handle GET requests with query parameters
         selected_date = request.args.get('date')
         search_query = request.args.get('search')
 
@@ -150,17 +141,12 @@ def index():
 
         if selected_date:
             try:
-                # Convert selected date (dd/mm/yyyy) to a datetime object
                 date_obj = dt.strptime(selected_date, '%d/%m/%Y')
 
-                # Make date_obj aware with user's timezone
                 date_obj = date_obj.replace(tzinfo=user_tz)
-
-                # Define the start and end of the selected day in user's timezone
                 start_day_user = date_obj
                 end_day_user = start_day_user + timedelta(days=1)
 
-                # Convert start and end of day to UTC for querying
                 start_day_utc = start_day_user.astimezone(utc_tz)
                 end_day_utc = end_day_user.astimezone(utc_tz)
 
@@ -169,7 +155,6 @@ def index():
                     "$lt": end_day_utc
                 }
             except ValueError:
-                # Invalid date format; optionally handle the error
                 selected_date = None
 
         if search_query:
@@ -179,12 +164,10 @@ def index():
                 {"item_name": Regex(f'.*{search_query}.*', 'i')}
             ]
 
-            # Log sample item_id
             sample_doc = coles_updates_collection.find_one()
             if sample_doc and 'item_id' in sample_doc:
                 app.logger.debug(f"Sample item_id: {sample_doc['item_id']} (type: {type(sample_doc['item_id'])})")
 
-            # Attempt numeric match for item_id
             try:
                 search_number = int(search_query)
                 or_conditions.append({"item_id": search_number})
@@ -202,14 +185,11 @@ def index():
         #         {"item_name": regex},
         #         {"item_id": regex}
         #     ]
-
-        # Retrieve total count for pagination
         total_messages = coles_updates_collection.count_documents(query)
         total_pages = (total_messages + per_page - 1) // per_page
 
         app.logger.debug(f"Query: {query}")
 
-        # Fetch records with pagination
         messages = list(
             coles_updates_collection.find(query)
             .sort("date", -1)
@@ -240,26 +220,23 @@ def index():
             search_query=search_query,
             page=page,
             total_pages=total_pages,
-            date_buttons=date_buttons  # Pass the list of date buttons to the template
+            date_buttons=date_buttons
         )
 
 @app.route('/item/<int:item_id>')
 def item(item_id):
-    # Fetch all records for the given item_id, sorted by date ascending
     item_records = list(coles_updates_collection.find({"item_id": item_id}).sort("date", 1))
 
     if not item_records:
         abort(404)
 
-    # Extract item details from the first record
     first_record = item_records[0]
     item_brand = first_record.get('item_brand', 'Unknown Brand')
     item_name = first_record.get('item_name', 'Unknown Name')
     image_url = first_record.get('image_url', None)
 
-    # Timezone handling
     timezone_str = request.cookies.get('timezone')
-    user_tz = utc_tz  # Default timezone
+    user_tz = utc_tz
     if timezone_str:
         try:
             user_tz = ZoneInfo(timezone_str)
@@ -267,7 +244,6 @@ def item(item_id):
         except ZoneInfoNotFoundError:
             app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
 
-    # Prepare data for the graph
     dates = []
     prices = []
     for record in item_records:
@@ -278,18 +254,14 @@ def item(item_id):
             prices.append(record.get("price_after", 0))
 
     if prices:
-        # Include the initial price_before in the total_prices list
         initial_price_before = item_records[0].get("price_before", 0)
-        total_prices = [initial_price_before] + prices  # Combine price_before with all price_afters
-        
-        # Calculate Lowest and Highest Prices
+        total_prices = [initial_price_before] + prices
+
         lowest_price = min(total_prices)
         highest_price = max(total_prices)
-        
-        # Calculate Percentage Change Between Lowest and Highest
+
         percentage_change_extremes = ((highest_price - lowest_price) / lowest_price) * 100 if lowest_price else 0
-        
-        # Calculate Total Price Changes
+
         total_price_changes = 0
         previous_price = initial_price_before
         for current_price in prices:
@@ -299,15 +271,12 @@ def item(item_id):
     else:
         lowest_price = highest_price = percentage_change_extremes = total_price_changes = "N/A"
 
-
-    # Latest price information
     latest_record = item_records[-1]
     latest_price_before = latest_record.get("price_before", "N/A")
     latest_price_after = latest_record.get("price_after", "N/A")
     change = latest_price_after - latest_price_before if isinstance(latest_price_before, (int, float)) and isinstance(latest_price_after, (int, float)) else "N/A"
     percentage_change_latest = ((change) / latest_price_before * 100) if isinstance(change, (int, float)) and latest_price_before != 0 else "N/A"
 
-    # External URL
     item_url = f"https://coles.com.au/product/{item_id}"
 
     return render_template(
@@ -320,7 +289,7 @@ def item(item_id):
         lowest_price=lowest_price,
         highest_price=highest_price,
         percentage_change_extremes=percentage_change_extremes,
-        total_price_changes=total_price_changes,  # Passed to template
+        total_price_changes=total_price_changes,
         latest_price_before=latest_price_before,
         latest_price_after=latest_price_after,
         change=change,
