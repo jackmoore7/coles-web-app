@@ -203,3 +203,26 @@
         </div>
     </div>
 {% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const customDateForm = document.getElementById('custom-date-form');
+            const customDateInput = document.getElementById('customDate');
+            const formattedDateInput = document.getElementById('formattedDate');
+
+            if (customDateForm && customDateInput && formattedDateInput) {
+                customDateForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const selectedDate = new Date(customDateInput.value + 'T00:00:00');
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const year = selectedDate.getFullYear();
+                    formattedDateInput.value = `${day}/${month}/${year}`;
+                    this.submit();
+                });
+            }
+        });
+    </script>
+{% endblock %}

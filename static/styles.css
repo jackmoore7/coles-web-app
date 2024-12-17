@@ -34,10 +34,10 @@
 
     --btn-custom-white-bg: #1e1e1e;
     --btn-custom-white-text: #e0e0e0;
-    --btn-custom-red-text: #121212;
+    --btn-custom-red-text: #e0e0e0;
     
     --pagination-active-bg: #E01A22;
-    --pagination-active-text: #121212;
+    --pagination-active-text: #e0e0e0;
     --pagination-link-bg: #1e1e1e;
     --pagination-disabled-bg: #3b3b3f;
     --pagination-hover-bg: #252529;
@@ -108,13 +108,14 @@ a.text-decoration-none .card {
     background-color: var(--btn-custom-red-bg);
     color: var(--btn-custom-red-text); 
     border: 0px;
+    transition: all 0.2s ease-in-out;
 }
 
 .btn-outline-secondary {
     background-color: var(--btn-custom-white-bg);
     color: var(--btn-custom-white-text);
     border: 0px;
-    transition: all 0.2s ease-in-out;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
 .btn-custom-red:hover {
@@ -170,6 +171,7 @@ a.text-decoration-none .card {
     border: 0px;
     background-color: var(--card-bg);
     color: var(--card-text-color);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .form-control:focus {
@@ -182,6 +184,7 @@ a.text-decoration-none .card {
     border: 0px;
     background-color: var(--card-bg);
     color: var(--card-text-color);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .pagination > .active > span {
