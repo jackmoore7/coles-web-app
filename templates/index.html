@@ -176,6 +176,11 @@
     {% else %}
         <p>No records found.</p>
     {% endif %}
+
+    <button class="crazy-mode-toggle" id="crazyModeToggle" title="Toggle Crazy Mode">
+        <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"</i>
+    </button>
+
     <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -211,6 +216,8 @@
             const customDateForm = document.getElementById('custom-date-form');
             const customDateInput = document.getElementById('customDate');
             const formattedDateInput = document.getElementById('formattedDate');
+            const crazyModeToggle = document.getElementById('crazyModeToggle');
+            const contentContainer = document.querySelector('.row');
 
             if (customDateForm && customDateInput && formattedDateInput) {
                 customDateForm.addEventListener('submit', function(e) {
@@ -222,6 +229,22 @@
                     formattedDateInput.value = `${day}/${month}/${year}`;
                     this.submit();
                 });
+            }
+
+            if (crazyModeToggle && contentContainer) {
+                crazyModeToggle.addEventListener('click', function() {
+                    contentContainer.classList.toggle('crazy-mode');
+                    this.classList.toggle('active');
+                    
+                    const isCrazyMode = contentContainer.classList.contains('crazy-mode');
+                    localStorage.setItem('crazyMode', isCrazyMode);
+                });
+
+                const savedCrazyMode = localStorage.getItem('crazyMode') === 'true';
+                if (savedCrazyMode) {
+                    contentContainer.classList.add('crazy-mode');
+                    crazyModeToggle.classList.add('active');
+                }
             }
         });
     </script>
