@@ -75,6 +75,12 @@ h1, h6 {
     color: var(--card-text-color);
 }
 
+.price-text {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--card-text-color);
+}
+
 .card-img-top {
     height: 300px;
     object-fit: cover;
@@ -104,21 +110,21 @@ h1, h6 {
     }
 }
 
-.crazy-mode .card {
+#cardsContainer.crazy-mode .card {
     animation: fly 3s infinite ease-in-out;
     position: relative;
     z-index: 1;
 }
 
-.crazy-mode .col-lg-4:nth-child(3n) .card {
+#cardsContainer.crazy-mode .col-lg-4:nth-child(3n) .card {
     animation-delay: -1s;
 }
 
-.crazy-mode .col-lg-4:nth-child(3n+1) .card {
+#cardsContainer.crazy-mode .col-lg-4:nth-child(3n+1) .card {
     animation-delay: -2s;
 }
 
-.crazy-mode .card:hover {
+#cardsContainer.crazy-mode .card:hover {
     animation-play-state: paused;
 }
 
@@ -271,8 +277,7 @@ a.text-decoration-none .card {
 #darkModeToggle {
     background-color: var(--card-bg);
     fill: var(--card-text-color);
-  }
-  
+}
 
 .pagination .page-item {
     --bs-pagination-border-width: 0px;
@@ -378,20 +383,34 @@ body, .card, .btn-custom-white, .btn-custom-red, .dark-mode-toggle {
     transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
 
+/* Modal Styles */
 .modal-content {
     background-color: var(--card-bg);
+    color: var(--card-text-color);
 }
 
 .modal-header {
-    background-color: var(--card-bg);
-    color: var(--card-text-color);
-}
-
-.modal-header .btn-close {
-    color: var(--card-text-color);
+    border-bottom: none;
 }
 
 .modal-footer {
-    background-color: var(--card-bg);
-    color: var(--card-text-color);
+    border-top: none;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.modal-body {
+    font-size: 1rem;
+}
+
+.modal-body .form-label {
+    font-size: 1rem;
+    font-weight: normal;
+}
+
+.modal-footer .btn {
+    font-size: 1rem;
 }

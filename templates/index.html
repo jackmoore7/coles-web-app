@@ -74,7 +74,7 @@
     {% endif %}
 
     {% if messages %}
-        <div class="row">
+        <div class="row" id="cardsContainer">
             {% for message in messages %}
                 <div class="col-lg-4 col-md-6 mb-4">
                     <a href="{{ url_for('item', item_id=message.item_id) }}" class="text-decoration-none text-dark">
@@ -178,7 +178,7 @@
     {% endif %}
 
     <button class="crazy-mode-toggle" id="crazyModeToggle" title="Toggle Crazy Mode">
-        <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"</i>
+        <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"></i>
     </button>
 
     <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
@@ -217,7 +217,7 @@
             const customDateInput = document.getElementById('customDate');
             const formattedDateInput = document.getElementById('formattedDate');
             const crazyModeToggle = document.getElementById('crazyModeToggle');
-            const contentContainer = document.querySelector('.row');
+            const cardsContainer = document.getElementById('cardsContainer');
 
             if (customDateForm && customDateInput && formattedDateInput) {
                 customDateForm.addEventListener('submit', function(e) {
@@ -231,18 +231,18 @@
                 });
             }
 
-            if (crazyModeToggle && contentContainer) {
+            if (crazyModeToggle && cardsContainer) {
                 crazyModeToggle.addEventListener('click', function() {
-                    contentContainer.classList.toggle('crazy-mode');
+                    cardsContainer.classList.toggle('crazy-mode');
                     this.classList.toggle('active');
                     
-                    const isCrazyMode = contentContainer.classList.contains('crazy-mode');
+                    const isCrazyMode = cardsContainer.classList.contains('crazy-mode');
                     localStorage.setItem('crazyMode', isCrazyMode);
                 });
 
                 const savedCrazyMode = localStorage.getItem('crazyMode') === 'true';
                 if (savedCrazyMode) {
-                    contentContainer.classList.add('crazy-mode');
+                    cardsContainer.classList.add('crazy-mode');
                     crazyModeToggle.classList.add('active');
                 }
             }
