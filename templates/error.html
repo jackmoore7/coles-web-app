@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}{{ error_code }} Error - pricesareup.com{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="display-1">{{ error_code }}</h1>
+    <h2 class="mb-4">{{ error_message }}</h2>
+    <p class="lead">{{ error_description }}</p>
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary">Go Home</a>
+    </div>
+</div>
+{% endblock %}

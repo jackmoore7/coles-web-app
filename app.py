@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, url_for, redirect, make_response, abort
+from flask import Flask, render_template, request, url_for, redirect, abort
 from pymongo import MongoClient
 from datetime import datetime as dt, timedelta
 from dotenv import load_dotenv
@@ -6,93 +6,20 @@ import os
 from bson.regex import Regex
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import threading
-from collections import defaultdict
-import time
 
-# Load environment variables
 load_dotenv('config.env')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
-# MongoDB Setup
 MONGODB_URI = os.getenv('MONGODB_URI')
 client = MongoClient(MONGODB_URI)
 db = client['coles']
 coles_updates_collection = db['coles_updates']
 
-# Time Zones
-utc_tz = ZoneInfo("UTC")  # UTC timezone
+utc_tz = ZoneInfo("UTC")
 
-# In-memory storage for tracking
-failed_404_counts = defaultdict(int)  # Tracks total 404s per IP
-banned_ips = {}  # Stores IPs with their ban expiry times
-
-# Lock for thread-safe operations
 lock = threading.Lock()
-
-# Configuration
-MAX_TOTAL_404 = 1  # Number of 404s to trigger a ban
-BAN_DURATION_SECONDS = 250  # Ban duration (e.g., 10 minutes)
-
-def get_client_ip():
-    """
-    Retrieves the client's IP address, considering possible proxy headers.
-    """
-    if request.headers.get('X-Forwarded-For'):
-        # If behind a proxy (e.g., Nginx), use the first IP in the X-Forwarded-For header
-        ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    else:
-        ip = request.remote_addr
-    return ip
-
-@app.before_request
-def block_banned_ips():
-    """
-    Blocks requests from IPs that are currently banned.
-    """
-    client_ip = get_client_ip()
-    current_time = time.time()
-    with lock:
-        if client_ip in banned_ips:
-            ban_expiry = banned_ips[client_ip]
-            if current_time < ban_expiry:
-                # IP is still banned
-                remaining = int(ban_expiry - current_time)
-                return make_response(
-                    render_template(
-                        "banned.html",
-                        remaining=remaining
-                    ),
-                    403
-                )
-            else:
-                # Ban has expired
-                del banned_ips[client_ip]
-                failed_404_counts[client_ip] = 0  # Reset the 404 count
-
-@app.after_request
-def track_404s(response):
-    """
-    Tracks 404 responses and bans IPs after reaching the total 404 threshold.
-    """
-    if response.status_code == 404:
-        client_ip = get_client_ip()
-        with lock:
-            failed_404_counts[client_ip] += 1
-            app.logger.info(f"IP {client_ip} has {failed_404_counts[client_ip]} total 404(s).")
-            if failed_404_counts[client_ip] >= MAX_TOTAL_404:
-                banned_until = time.time() + BAN_DURATION_SECONDS
-                banned_ips[client_ip] = banned_until
-                app.logger.warning(
-                    f"IP {client_ip} has been temporarily banned until {time.ctime(banned_until)} "
-                    f"after {failed_404_counts[client_ip]} total 404(s)."
-                )
-                return make_response(
-                    render_template("banned.html", remaining=BAN_DURATION_SECONDS),
-                    403
-                )
-    return response
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -298,6 +225,20 @@ def item(item_id):
         item_url=item_url,
         user_tz=user_tz
     )
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('error.html',
+                         error_code=404,
+                         error_message='Page Not Found',
+                         error_description='The page you are looking for does not exist.'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('error.html',
+                         error_code=500,
+                         error_message='Internal Server Error',
+                         error_description='Something went wrong on our end. Please try again later.'), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
