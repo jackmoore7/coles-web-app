@@ -12,7 +12,7 @@ https://pricesareup.com is a website that tracks and displays when a product rea
 <img width="1470" alt="Screenshot 2024-12-27 at 12 42 41" src="https://github.com/user-attachments/assets/3cbcb06d-e0c4-4042-b28a-46fb3facc57d" />
 - Price change statistics (lowest/highest prices, percentage changes)
 - Mobile-responsive design
-![Screenshot_20241227-123038](https://github.com/user-attachments/assets/ee108a88-ffd6-4c6a-a19c-eea98c52d80f)
+<img src="https://github.com/user-attachments/assets/ee108a88-ffd6-4c6a-a19c-eea98c52d80f"/>
 - Dark mode
 - Crazy mode
 
