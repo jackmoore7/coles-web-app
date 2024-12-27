@@ -1,8 +1,6 @@
 # pricesareup.com
-
-<img width="1470" alt="Screenshot 2024-12-27 at 12 29 14" src="https://github.com/user-attachments/assets/2de523f5-5345-41b2-9824-6f06e52bdf1f" />
-
 https://pricesareup.com is a website that tracks and displays when a product reaches an all-time high for Coles supermarket products.
+<img width="1470" alt="Screenshot 2024-12-27 at 12 29 14" src="https://github.com/user-attachments/assets/2de523f5-5345-41b2-9824-6f06e52bdf1f" />
 
 ## Features
 
