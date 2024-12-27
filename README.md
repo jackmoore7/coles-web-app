@@ -9,10 +9,10 @@ https://pricesareup.com is a website that tracks and displays when a product rea
 - Date-based filtering of price updates
 - Timezone support for accurate local time display (with 1st party cookies enabled)
 - Individual product pages with detailed price history, with an option to view the product on Coles' website
-  <img width="1470" alt="Screenshot 2024-12-27 at 12 42 41" src="https://github.com/user-attachments/assets/3cbcb06d-e0c4-4042-b28a-46fb3facc57d" />
+  - <img width="1470" alt="Screenshot 2024-12-27 at 12 42 41" src="https://github.com/user-attachments/assets/3cbcb06d-e0c4-4042-b28a-46fb3facc57d" />
 - Price change statistics (lowest/highest prices, percentage changes)
 - Mobile-responsive design
-  <img width="500" src="https://github.com/user-attachments/assets/ee108a88-ffd6-4c6a-a19c-eea98c52d80f"/>
+  - <img width="500" src="https://github.com/user-attachments/assets/ee108a88-ffd6-4c6a-a19c-eea98c52d80f"/>
 - Dark mode
 - Crazy mode
 
@@ -20,7 +20,7 @@ https://pricesareup.com is a website that tracks and displays when a product rea
 
 - To filter by date, use one of the `x days ago` buttons or enter a custom date
 - To enable dark mode or crazy mode, click the respective buttons (I'm sure you can tell which is which):
-<img width="134" alt="Screenshot 2024-12-27 at 12 29 35" src="https://github.com/user-attachments/assets/f8eea82f-9b23-47ca-b91c-8e3827e685bc" />
+  - <img width="134" alt="Screenshot 2024-12-27 at 12 29 35" src="https://github.com/user-attachments/assets/f8eea82f-9b23-47ca-b91c-8e3827e685bc" />
 - Click on an item to view its product page and price history chart
 
 ## Technical Overview
