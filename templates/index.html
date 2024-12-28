@@ -171,13 +171,78 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        window.goBack = function() {
+        function showItemView(html, dates, prices) {
+            document.getElementById('itemView').innerHTML = html;
+            document.getElementById('cardsView').classList.add('hidden');
+            document.getElementById('pagination').classList.add('hidden');
+            document.getElementById('itemView').style.display = 'block';
+
+            const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Price After ($)',
+                        data: prices,
+                        borderColor: 'rgba(224, 26, 34, 1)',
+                        backgroundColor: 'rgba(224, 26, 34, 0.2)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: 'rgba(224, 26, 34, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Price After ($)'
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function showMainView() {
             document.getElementById('itemView').style.display = 'none';
             document.getElementById('cardsView').classList.remove('hidden');
             document.getElementById('pagination').classList.remove('hidden');
         }
+
+        window.goBack = function() {
+            history.back();
+        }
         
-        async function loadItem(itemId) {
+        async function loadItem(itemId, pushState = true) {
             try {
                 const response = await fetch(`/item/${itemId}`, {
                     headers: {
@@ -186,64 +251,10 @@
                 });
                 const data = await response.json();
                 
-                document.getElementById('itemView').innerHTML = data.html;
-                document.getElementById('cardsView').classList.add('hidden');
-                document.getElementById('pagination').classList.add('hidden');
-                document.getElementById('itemView').style.display = 'block';
-
-                const ctx = document.getElementById('priceHistoryChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.dates,
-                        datasets: [{
-                            label: 'Price After ($)',
-                            data: data.prices,
-                            borderColor: 'rgba(224, 26, 34, 1)',
-                            backgroundColor: 'rgba(224, 26, 34, 0.2)',
-                            fill: true,
-                            tension: 0.1,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: 'rgba(224, 26, 34, 1)',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false,
-                            }
-                        },
-                        interaction: {
-                            mode: 'nearest',
-                            axis: 'x',
-                            intersect: false
-                        },
-                        scales: {
-                            x: {
-                                display: true,
-                                title: {
-                                    display: true,
-                                    text: 'Date'
-                                }
-                            },
-                            y: {
-                                display: true,
-                                title: {
-                                    display: true,
-                                    text: 'Price After ($)'
-                                },
-                                beginAtZero: false
-                            }
-                        }
-                    }
-                });
+                showItemView(data.html, data.dates, data.prices);
+                if (pushState) {
+                    history.pushState({ itemId }, '', `/item/${itemId}`);
+                }
             } catch (error) {
                 console.error('Error loading item:', error);
             }
@@ -255,6 +266,19 @@
                 console.log(
                     `Cache ${cacheInfo.status === 'hit' ? 'HIT' : 'MISS'} - ${cacheInfo.status === 'hit' ? 'Serving cached data' : 'Fetched fresh data'} from ${cacheInfo.timestamp}`
                 );
+            }
+
+            window.addEventListener('popstate', async function(event) {
+                if (event.state && event.state.itemId) {
+                    await loadItem(event.state.itemId, false);
+                } else {
+                    showMainView();
+                }
+            });
+
+            const match = window.location.pathname.match(/^\/item\/(\d+)$/);
+            if (match) {
+                loadItem(match[1], false);
             }
 
             const searchInput = document.getElementById('searchInput');
