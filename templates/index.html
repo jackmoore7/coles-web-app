@@ -22,7 +22,7 @@
     <div class="d-flex justify-content-center mb-4" style="cursor: pointer;" id="resetAll">
         <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
     </div>
-    <div id="cardsView">
+    <div id="cardsView" class="{{ 'hidden' if initial_item else '' }}">
         <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
 
         <div class="input-group mb-4">
@@ -162,7 +162,7 @@
         </div>
     </div>
 
-    <div id="itemView">
+    <div id="itemView" style="display: {{ 'block' if initial_item else 'none' }}">
     </div>
 {% endblock %}
 
@@ -502,6 +502,8 @@
             showPage(1, filteredProducts);
 
             function resetAll() {
+                showMainView();
+
                 searchInput.value = '';
                 searchTerm = '';
                 
@@ -513,6 +515,8 @@
                 
                 filteredProducts = [...allProducts];
                 filterProducts();
+
+                history.pushState({}, '', '/');
             }
 
             document.getElementById('resetButton').addEventListener('click', resetAll);
