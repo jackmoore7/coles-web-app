@@ -268,6 +268,16 @@
                 );
             }
 
+            const initialItem = {{ initial_item|tojson|safe if initial_item else 'null' }};
+            if (initialItem) {
+                showItemView(initialItem.html, initialItem.dates, initialItem.prices);
+            } else {
+                const match = window.location.pathname.match(/^\/item\/(\d+)$/);
+                if (match) {
+                    loadItem(match[1], false);
+                }
+            }
+
             window.addEventListener('popstate', async function(event) {
                 if (event.state && event.state.itemId) {
                     await loadItem(event.state.itemId, false);
@@ -275,11 +285,6 @@
                     showMainView();
                 }
             });
-
-            const match = window.location.pathname.match(/^\/item\/(\d+)$/);
-            if (match) {
-                loadItem(match[1], false);
-            }
 
             const searchInput = document.getElementById('searchInput');
             const cards = document.querySelectorAll('.col-lg-4');

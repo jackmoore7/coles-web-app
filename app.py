@@ -184,49 +184,103 @@ def item(item_id):
 
     item_url = f"https://coles.com.au/product/{item_id}"
 
+    item_data = {
+        'html': render_template(
+            'item.html',
+            item_brand=item_brand,
+            item_name=item_name,
+            image_url=image_url,
+            dates=dates,
+            prices=prices,
+            lowest_price=lowest_price,
+            highest_price=highest_price,
+            percentage_change_extremes=percentage_change_extremes,
+            total_price_changes=total_price_changes,
+            latest_price_before=latest_price_before,
+            latest_price_after=latest_price_after,
+            change=change,
+            percentage_change_latest=percentage_change_latest,
+            item_id=item_id,
+            item_url=item_url,
+            user_tz=user_tz
+        ),
+        'dates': dates,
+        'prices': prices
+    }
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return {
-            'html': render_template(
-                'item.html',
-                item_brand=item_brand,
-                item_name=item_name,
-                image_url=image_url,
-                dates=dates,
-                prices=prices,
-                lowest_price=lowest_price,
-                highest_price=highest_price,
-                percentage_change_extremes=percentage_change_extremes,
-                total_price_changes=total_price_changes,
-                latest_price_before=latest_price_before,
-                latest_price_after=latest_price_after,
-                change=change,
-                percentage_change_latest=percentage_change_latest,
-                item_id=item_id,
-                item_url=item_url,
-                user_tz=user_tz
-            ),
-            'dates': dates,
-            'prices': prices
+        return item_data
+    
+    messages = []
+    timezone_str = request.cookies.get('timezone')
+    if timezone_str:
+        try:
+            user_tz = ZoneInfo(timezone_str)
+            app.logger.debug(f"User timezone: {timezone_str}")
+        except ZoneInfoNotFoundError:
+            app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
+            user_tz = utc_tz
+    else:
+        app.logger.debug("No timezone cookie found. Defaulting to UTC.")
+        user_tz = utc_tz
+
+    today = dt.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    last_seven_days = [today - timedelta(days=i) for i in range(0, 7)]
+    date_buttons = []
+    for i, date in enumerate(last_seven_days):
+        if i == 0:
+            label = "Today"
+        elif i == 1:
+            label = "Yesterday"
+        else:
+            label = f"{i} Days Ago"
+        date_buttons.append({
+            'date_str': date.strftime('%d/%m/%Y'),
+            'label': label
+        })
+
+    global cached_messages, cache_timestamp
+    
+    cache_info = {}
+    if should_refresh_cache():
+        with lock:
+            if should_refresh_cache():
+                messages = list(coles_updates_collection.find().sort("date", -1))
+                cached_messages = messages
+                cache_timestamp = dt.now(utc_tz)
+                cache_info = {
+                    'status': 'miss',
+                    'timestamp': cache_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
+                }
+    else:
+        cache_info = {
+            'status': 'hit',
+            'timestamp': cache_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
         }
     
+    messages = cached_messages
+    total_messages = len(messages)
+
+    for message in messages:
+        if message.get("date"):
+            date_obj = message["date"]
+            if date_obj.tzinfo is None:
+                date_obj = date_obj.replace(tzinfo=utc_tz)
+            else:
+                date_obj = date_obj.astimezone(utc_tz)
+
+            message["date_iso"] = date_obj.isoformat()
+            message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
+            local_date_obj = date_obj.astimezone(user_tz)
+            message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
+
     return render_template(
-        'item.html',
-        item_brand=item_brand,
-        item_name=item_name,
-        image_url=image_url,
-        dates=dates,
-        prices=prices,
-        lowest_price=lowest_price,
-        highest_price=highest_price,
-        percentage_change_extremes=percentage_change_extremes,
-        total_price_changes=total_price_changes,
-        latest_price_before=latest_price_before,
-        latest_price_after=latest_price_after,
-        change=change,
-        percentage_change_latest=percentage_change_latest,
-        item_id=item_id,
-        item_url=item_url,
-        user_tz=user_tz
+        'index.html',
+        messages=messages,
+        total_messages=total_messages,
+        date_buttons=date_buttons,
+        cache_info=cache_info,
+        initial_item=item_data
     )
 
 @app.errorhandler(404)
