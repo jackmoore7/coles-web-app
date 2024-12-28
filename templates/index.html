@@ -2,64 +2,85 @@
 
 {% block title %}{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #itemView {
+            display: none;
+        }
+        #cardsView.hidden {
+            display: none;
+        }
+        #pagination.hidden {
+            display: none;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
-    <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
+    <a href="/">
+        <div class="d-flex justify-content-center mb-4">
+            <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+        </div>
+    </a>
+    <div id="cardsView">
+        <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
 
-    <div class="input-group mb-4">
-        <input type="search" class="form-control" id="searchInput" placeholder="Search by Brand, Name, or ID" aria-label="Search">
-        <button class="btn btn-outline-secondary" type="button" onclick="window.location.reload()">Reset</button>
-    </div>
-
-    <div class="mb-4 d-flex justify-content-center">
-        <div class="btn-group flex-wrap d-none d-md-flex" role="group" aria-label="Date range">
-            {% for button in date_buttons %}
-                <button type="button" 
-                        class="btn btn-custom-white mb-2 mx-1 date-button"
-                        data-date="{{ button.date_str }}"
-                        data-label="{{ button.label }}">
-                    {{ button.label }}
-                </button>
-            {% endfor %}
-            <button type="button" class="btn btn-custom-white mb-2 mx-1" data-bs-toggle="modal" data-bs-target="#customDateModal">
-                Custom Date
-            </button>
+        <div class="input-group mb-4">
+            <input type="search" class="form-control" id="searchInput" placeholder="Search by Brand, Name, or ID" aria-label="Search">
+            <button class="btn btn-outline-secondary" type="button" onclick="window.location.reload()">Reset</button>
         </div>
 
-        <div class="dropdown d-md-none w-100">
-            <button class="btn btn-outline-secondary btn-lg w-100 dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                Select Date
-            </button>
-            <ul class="dropdown-menu w-100" aria-labelledby="dropdownMenuButton">
+        <div class="mb-4 d-flex justify-content-center">
+            <div class="btn-group flex-wrap d-none d-md-flex" role="group" aria-label="Date range">
                 {% for button in date_buttons %}
+                    <button type="button" 
+                            class="btn btn-custom-white mb-2 mx-1 date-button"
+                            data-date="{{ button.date_str }}"
+                            data-label="{{ button.label }}">
+                        {{ button.label }}
+                    </button>
+                {% endfor %}
+                <button type="button" class="btn btn-custom-white mb-2 mx-1" data-bs-toggle="modal" data-bs-target="#customDateModal">
+                    Custom Date
+                </button>
+            </div>
+
+            <div class="dropdown d-md-none w-100">
+                <button class="btn btn-outline-secondary btn-lg w-100 dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    Select Date
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="dropdownMenuButton">
+                    {% for button in date_buttons %}
+                        <li>
+                            <a class="dropdown-item date-button"
+                               href="#" 
+                               data-date="{{ button.date_str }}"
+                               data-label="{{ button.label }}">
+                                {{ button.label }}
+                            </a>
+                        </li>
+                    {% endfor %}
                     <li>
-                        <a class="dropdown-item date-button"
-                           href="#" 
-                           data-date="{{ button.date_str }}"
-                           data-label="{{ button.label }}">
-                            {{ button.label }}
+                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#customDateModal">
+                            Custom Date
                         </a>
                     </li>
-                {% endfor %}
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#customDateModal">
-                        Custom Date
-                    </a>
-                </li>
-            </ul>
+                </ul>
+            </div>
         </div>
-    </div>
 
-    <h4 class="mb-3">
-        <span id="countDisplay">{{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }}</span>
-        <span id="dateDisplay"></span>
-    </h4>
+        <h4 class="mb-3">
+            <span id="countDisplay">{{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }}</span>
+            <span id="dateDisplay"></span>
+        </h4>
 
-    {% if messages %}
-        <div class="row" id="cardsContainer">
-            {% for message in messages %}
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <a href="{{ url_for('item', item_id=message.item_id) }}" class="text-decoration-none text-dark">
-                        <div class="card h-100 shadow-sm">
+        {% if messages %}
+            <div class="row" id="cardsContainer">
+                {% for message in messages %}
+                    <div class="col-lg-4 col-md-6 mb-4 item-container" onclick="loadItem({{ message.item_id }})">
+                        <div class="card h-100 shadow-sm position-relative" style="cursor: pointer;">
                             {% if message.image_url %}
                                 <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">
                             {% else %}
@@ -77,50 +98,157 @@
                                 </p>
                             </div>
                         </div>
-                    </a>
-                </div>
-            {% endfor %}
-        </div>
+                    </div>
+                {% endfor %}
+            </div>
 
-        <nav aria-label="Page navigation">
-            <ul id="bootstrap-overrides" class="pagination justify-content-center"></ul>
-        </nav>
+            <nav aria-label="Page navigation" id="pagination">
+                <ul id="bootstrap-overrides" class="pagination justify-content-center"></ul>
+            </nav>
 
-    {% else %}
-        <p>No records found.</p>
-    {% endif %}
+        {% else %}
+            <p>No records found.</p>
+        {% endif %}
 
-    <button class="crazy-mode-toggle" id="crazyModeToggle" title="Toggle Crazy Mode">
-        <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"></i>
-    </button>
+        <button class="crazy-mode-toggle" id="crazyModeToggle" title="Toggle Crazy Mode">
+            <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"></i>
+        </button>
 
-    <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="custom-date-form">
+        <footer class="text-center text-lg-start">
+            <div class="text-center p-3">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#infoModal">More info</a>
+            </div>
+        </footer>
+
+        <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="customDateModalLabel">Select Custom Date</h5>
+                        <h5 class="modal-title" id="infoModalLabel">More info</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="customDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="customDate" required>
-                        </div>
+                        <p>Data is retrieved from Coles at the date and time specified on each product record. Prices may differ per store. Data collection started on 8/9/24.</p>
+                        <p>No data is collected from the website user, other than baseline data collected by hosting services.</p>
+                        <p>"Down Down" hand image is &copy; Coles.</p>
+                        <p>You can contact me at <samp>*@pricesareup.com</samp></p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Apply</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
+
+        <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="custom-date-form">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="customDateModalLabel">Select Custom Date</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="customDate" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="customDate" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="itemView">
     </div>
 {% endblock %}
 
 {% block scripts %}
     {{ super() }}
     <script>
+        window.goBack = function() {
+            document.getElementById('itemView').style.display = 'none';
+            document.getElementById('cardsView').classList.remove('hidden');
+            document.getElementById('pagination').classList.remove('hidden');
+        }
+        
+        async function loadItem(itemId) {
+            try {
+                const response = await fetch(`/item/${itemId}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await response.json();
+                
+                document.getElementById('itemView').innerHTML = data.html;
+                document.getElementById('cardsView').classList.add('hidden');
+                document.getElementById('pagination').classList.add('hidden');
+                document.getElementById('itemView').style.display = 'block';
+
+                const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: 'Price After ($)',
+                            data: data.prices,
+                            borderColor: 'rgba(224, 26, 34, 1)',
+                            backgroundColor: 'rgba(224, 26, 34, 0.2)',
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgba(224, 26, 34, 1)',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Price After ($)'
+                                },
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading item:', error);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const cacheInfo = {{ cache_info|tojson|safe if cache_info else 'null' }};
             if (cacheInfo) {
@@ -194,7 +322,6 @@
                 if (!ul) return;
                 ul.innerHTML = '';
 
-                // Previous button
                 const prevLi = document.createElement('li');
                 prevLi.className = `page-item ${page === 1 ? 'disabled' : ''}`;
                 prevLi.innerHTML = `

@@ -184,6 +184,31 @@ def item(item_id):
 
     item_url = f"https://coles.com.au/product/{item_id}"
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return {
+            'html': render_template(
+                'item.html',
+                item_brand=item_brand,
+                item_name=item_name,
+                image_url=image_url,
+                dates=dates,
+                prices=prices,
+                lowest_price=lowest_price,
+                highest_price=highest_price,
+                percentage_change_extremes=percentage_change_extremes,
+                total_price_changes=total_price_changes,
+                latest_price_before=latest_price_before,
+                latest_price_after=latest_price_after,
+                change=change,
+                percentage_change_latest=percentage_change_latest,
+                item_id=item_id,
+                item_url=item_url,
+                user_tz=user_tz
+            ),
+            'dates': dates,
+            'prices': prices
+        }
+    
     return render_template(
         'item.html',
         item_brand=item_brand,

@@ -2,11 +2,6 @@
 
 {% block title %}{{ item_brand }} {{ item_name }} - pricesareup.com{% endblock %}
 
-{% block head %}
-    {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% endblock %}
-
 {% block content %}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
@@ -31,7 +26,7 @@
                 <strong>Total Price Changes:</strong> {{ total_price_changes }}<br>
             </p>
             <div class="d-flex justify-content-start mt-3">
-                <button onclick="window.history.back();" class="btn btn-secondary me-2">
+                <button onclick="window.goBack()" class="btn btn-secondary me-2">
                     <i class="fas fa-arrow-left"></i> Back
                 </button>
                 <a href="{{ item_url }}" class="btn btn-custom-red" target="_blank">
@@ -41,65 +36,4 @@
             <canvas id="priceHistoryChart" class="mt-4" height="100"></canvas>
         </div>
     </div>
-{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const ctx = document.getElementById('priceHistoryChart').getContext('2d');
-            const priceHistoryChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: {{ dates | tojson }},
-                    datasets: [{
-                        label: 'Price After ($)',
-                        data: {{ prices | tojson }},
-                        borderColor: 'rgba(224, 26, 34, 1)',
-                        backgroundColor: 'rgba(224, 26, 34, 0.2)',
-                        fill: true,
-                        tension: 0.1,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: 'rgba(224, 26, 34, 1)',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Date'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Price After ($)'
-                            },
-                            beginAtZero: false
-                        }
-                    }
-                }
-            });
-        });
-    </script>
 {% endblock %}
