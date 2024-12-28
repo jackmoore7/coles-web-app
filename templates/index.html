@@ -5,28 +5,20 @@
 {% block content %}
     <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
 
-    <form method="POST" class="mb-4">
-        <div class="input-group">
-            <input type="search" class="form-control" name="search" placeholder="Search by Brand, Name, or ID"
-                   {% if search_query %} value="{{ search_query }}" {% endif %} aria-label="Search">
-            <button class="btn btn-outline-secondary" type="submit">Search</button>
-        </div>
-    </form>
+    <div class="input-group mb-4">
+        <input type="search" class="form-control" id="searchInput" placeholder="Search by Brand, Name, or ID" aria-label="Search">
+        <button class="btn btn-outline-secondary" type="button" onclick="window.location.reload()">Reset</button>
+    </div>
 
     <div class="mb-4 d-flex justify-content-center">
         <div class="btn-group flex-wrap d-none d-md-flex" role="group" aria-label="Date range">
             {% for button in date_buttons %}
-                <button type="submit" form="date-form-{{ loop.index0 }}"
-                        class="btn btn-custom-white mb-2 mx-1
-                        {% if selected_date == button.date_str %} active {% endif %}">
+                <button type="button" 
+                        class="btn btn-custom-white mb-2 mx-1 date-button"
+                        data-date="{{ button.date_str }}"
+                        data-label="{{ button.label }}">
                     {{ button.label }}
                 </button>
-                <form id="date-form-{{ loop.index0 }}" method="POST" style="display: none;">
-                    <input type="hidden" name="date" value="{{ button.date_str }}">
-                    {% if search_query %}
-                        <input type="hidden" name="search" value="{{ search_query }}">
-                    {% endif %}
-                </form>
             {% endfor %}
             <button type="button" class="btn btn-custom-white mb-2 mx-1" data-bs-toggle="modal" data-bs-target="#customDateModal">
                 Custom Date
@@ -40,16 +32,12 @@
             <ul class="dropdown-menu w-100" aria-labelledby="dropdownMenuButton">
                 {% for button in date_buttons %}
                     <li>
-                        <a class="dropdown-item {% if selected_date == button.date_str %} active {% endif %}"
-                           href="#" onclick="document.getElementById('date-form-{{ loop.index0 }}').submit();">
+                        <a class="dropdown-item date-button"
+                           href="#" 
+                           data-date="{{ button.date_str }}"
+                           data-label="{{ button.label }}">
                             {{ button.label }}
                         </a>
-                        <form id="date-form-{{ loop.index0 }}" method="POST" style="display: none;">
-                            <input type="hidden" name="date" value="{{ button.date_str }}">
-                            {% if search_query %}
-                                <input type="hidden" name="search" value="{{ search_query }}">
-                            {% endif %}
-                        </form>
                     </li>
                 {% endfor %}
                 <li>
@@ -61,17 +49,10 @@
         </div>
     </div>
 
-    {% if selected_date or search_query %}
-        <h4 class="mb-3">
-            {% if selected_date and search_query %}
-                {{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }} matching "{{ search_query }}" on {{ selected_date }}
-            {% elif selected_date %}
-                {{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }} on {{ selected_date }}
-            {% elif search_query %}
-                {{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }} matching "{{ search_query }}"
-            {% endif %}
-        </h4>
-    {% endif %}
+    <h4 class="mb-3">
+        <span id="countDisplay">{{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }}</span>
+        <span id="dateDisplay">{% if selected_date %}on {{ selected_date }}{% endif %}</span>
+    </h4>
 
     {% if messages %}
         <div class="row" id="cardsContainer">
@@ -102,77 +83,9 @@
         </div>
 
         <nav aria-label="Page navigation">
-            <ul id="bootstrap-overrides" class="pagination justify-content-center">
-                {% if page > 1 %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('index', page=page-1, date=selected_date, search=search_query) }}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">&laquo;</span>
-                    </li>
-                {% endif %}
-                
-                {% set window_size = 5 %}
-                {% set half_window = window_size // 2 %}
-                
-                {% if total_pages <= window_size %}
-                    {% set start_page = 1 %}
-                    {% set end_page = total_pages %}
-                {% else %}
-                    {% if page <= half_window %}
-                        {% set start_page = 1 %}
-                        {% set end_page = window_size %}
-                    {% elif page + half_window > total_pages %}
-                        {% set start_page = total_pages - window_size + 1 %}
-                        {% set end_page = total_pages %}
-                    {% else %}
-                        {% set start_page = page - half_window %}
-                        {% set end_page = page + half_window %}
-                    {% endif %}
-                {% endif %}
-                
-                {% if start_page > 1 %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('index', page=1, date=selected_date, search=search_query) }}">1</a>
-                    </li>
-                    {% if start_page > 2 %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                {% endif %}
-                
-                {% for p in range(start_page, end_page + 1) %}
-                    {% if p == page %}
-                        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-                    {% else %}
-                        <li class="page-item"><a class="page-link" href="{{ url_for('index', page=p, date=selected_date, search=search_query) }}">{{ p }}</a></li>
-                    {% endif %}
-                {% endfor %}
-                
-                {% if end_page < total_pages %}
-                    {% if end_page < total_pages - 1 %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('index', page=total_pages, date=selected_date, search=search_query) }}">{{ total_pages }}</a>
-                    </li>
-                {% endif %}
-                
-                {% if page < total_pages %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('index', page=page+1, date=selected_date, search=search_query) }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">&raquo;</span>
-                    </li>
-                {% endif %}
-            </ul>
+            <ul id="bootstrap-overrides" class="pagination justify-content-center"></ul>
         </nav>
+
     {% else %}
         <p>No records found.</p>
     {% endif %}
@@ -184,7 +97,7 @@
     <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form id="custom-date-form" method="POST">
+                <form id="custom-date-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="customDateModalLabel">Select Custom Date</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -193,11 +106,7 @@
                         <div class="mb-3">
                             <label for="customDate" class="form-label">Date</label>
                             <input type="date" class="form-control" id="customDate" required>
-                            <input type="hidden" name="date" id="formattedDate">
                         </div>
-                        {% if search_query %}
-                            <input type="hidden" name="search" value="{{ search_query }}">
-                        {% endif %}
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -213,29 +122,218 @@
     {{ super() }}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const customDateForm = document.getElementById('custom-date-form');
-            const customDateInput = document.getElementById('customDate');
-            const formattedDateInput = document.getElementById('formattedDate');
-            const crazyModeToggle = document.getElementById('crazyModeToggle');
-            const cardsContainer = document.getElementById('cardsContainer');
+            const cacheInfo = {{ cache_info|tojson|safe if cache_info else 'null' }};
+            if (cacheInfo) {
+                console.log(
+                    `Cache ${cacheInfo.status === 'hit' ? 'HIT' : 'MISS'} - ${cacheInfo.status === 'hit' ? 'Serving cached data' : 'Fetched fresh data'} from ${cacheInfo.timestamp}`
+                );
+            }
 
-            if (customDateForm && customDateInput && formattedDateInput) {
+            const searchInput = document.getElementById('searchInput');
+            const cards = document.querySelectorAll('.col-lg-4');
+            const ITEMS_PER_PAGE = 9;
+            let currentPage = 1;
+            let selectedDate = null;
+            let selectedDateLabel = '';
+            let searchTerm = '';
+            
+            const allProducts = Array.from(cards).map(card => {
+                const dateText = card.querySelector('.date').textContent.trim();
+                return {
+                    element: card,
+                    searchText: (card.querySelector('.card-title').textContent + ' ' + 
+                               card.querySelector('.card-text').textContent).toLowerCase(),
+                    date: dateText
+                };
+            });
+
+            let filteredProducts = [...allProducts];
+
+            function filterProducts() {
+                filteredProducts = allProducts.filter(product => {
+                    const matchesSearch = !searchTerm || product.searchText.includes(searchTerm);
+                    const matchesDate = !selectedDate || product.date.includes(selectedDate);
+                    return matchesSearch && matchesDate;
+                });
+                showPage(1, filteredProducts);
+            }
+
+            function showPage(page, products) {
+                currentPage = page;
+                const start = (page - 1) * ITEMS_PER_PAGE;
+                const end = start + ITEMS_PER_PAGE;
+                const productsToShow = products.slice(start, end);
+
+                allProducts.forEach(product => {
+                    product.element.style.display = 'none';
+                });
+
+                productsToShow.forEach(product => {
+                    product.element.style.display = '';
+                });
+
+                const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+                updatePaginationUI(page, totalPages, products.length);
+            }
+
+            function updatePaginationUI(page, totalPages, totalItems) {
+                const countDisplay = document.getElementById('countDisplay');
+                const dateDisplay = document.getElementById('dateDisplay');
+                if (countDisplay) {
+                    let countText = `${totalItems} ${totalItems === 1 ? 'record' : 'records'}`;
+                    if (searchTerm) {
+                        countText += ` matching "${searchTerm}"`;
+                    }
+                    countDisplay.textContent = countText;
+                }
+                if (dateDisplay) {
+                    dateDisplay.textContent = selectedDate ? (selectedDateLabel ? ` on ${selectedDateLabel}` : ` on ${selectedDate}`) : '';
+                }
+
+                const ul = document.querySelector('nav[aria-label="Page navigation"] ul');
+                if (!ul) return;
+                ul.innerHTML = '';
+
+                // Previous button
+                const prevLi = document.createElement('li');
+                prevLi.className = `page-item ${page === 1 ? 'disabled' : ''}`;
+                prevLi.innerHTML = `
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                `;
+                if (page > 1) {
+                    prevLi.querySelector('a').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showPage(page - 1, filteredProducts);
+                    });
+                }
+                ul.appendChild(prevLi);
+
+                const window_size = 5;
+                const half_window = Math.floor(window_size / 2);
+                let start_page = Math.max(1, page - half_window);
+                let end_page = Math.min(totalPages, start_page + window_size - 1);
+
+                if (end_page - start_page + 1 < window_size) {
+                    start_page = Math.max(1, end_page - window_size + 1);
+                }
+
+                if (start_page > 1) {
+                    ul.appendChild(createPageItem(1));
+                    if (start_page > 2) {
+                        ul.appendChild(createEllipsis());
+                    }
+                }
+
+                for (let i = start_page; i <= end_page; i++) {
+                    ul.appendChild(createPageItem(i));
+                }
+
+                if (end_page < totalPages) {
+                    if (end_page < totalPages - 1) {
+                        ul.appendChild(createEllipsis());
+                    }
+                    ul.appendChild(createPageItem(totalPages));
+                }
+
+                const nextLi = document.createElement('li');
+                nextLi.className = `page-item ${page === totalPages ? 'disabled' : ''}`;
+                nextLi.innerHTML = `
+                    <a class="page-link" href="#" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                `;
+                if (page < totalPages) {
+                    nextLi.querySelector('a').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showPage(page + 1, filteredProducts);
+                    });
+                }
+                ul.appendChild(nextLi);
+            }
+
+            function createPageItem(pageNum) {
+                const li = document.createElement('li');
+                li.className = `page-item ${pageNum === currentPage ? 'active' : ''}`;
+                li.innerHTML = `
+                    <a class="page-link" href="#">${pageNum}</a>
+                `;
+                if (pageNum !== currentPage) {
+                    li.querySelector('a').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showPage(pageNum, filteredProducts);
+                    });
+                }
+                return li;
+            }
+
+            function createEllipsis() {
+                const li = document.createElement('li');
+                li.className = 'page-item disabled';
+                li.innerHTML = '<span class="page-link">...</span>';
+                return li;
+            }
+
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            document.querySelectorAll('.date-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.date-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    button.classList.add('active');
+                    selectedDate = button.dataset.date;
+                    selectedDateLabel = button.dataset.label;
+                    filterProducts();
+                });
+            });
+
+            const customDateForm = document.getElementById('custom-date-form');
+            if (customDateForm) {
                 customDateForm.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    const selectedDate = new Date(customDateInput.value + 'T00:00:00');
-                    const day = String(selectedDate.getDate()).padStart(2, '0');
-                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                    const year = selectedDate.getFullYear();
-                    formattedDateInput.value = `${day}/${month}/${year}`;
-                    this.submit();
+                    const dateInput = document.getElementById('customDate');
+                    const date = new Date(dateInput.value + 'T00:00:00');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    selectedDate = `${day}/${month}/${year}`;
+                    selectedDateLabel = '';
+                    
+                    document.querySelectorAll('.date-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    filterProducts();
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('customDateModal'));
+                    modal.hide();
                 });
             }
 
+            searchInput.addEventListener('input', debounce((e) => {
+                searchTerm = e.target.value.toLowerCase();
+                filterProducts();
+            }, 150));
+
+            const crazyModeToggle = document.getElementById('crazyModeToggle');
+            const cardsContainer = document.getElementById('cardsContainer');
             if (crazyModeToggle && cardsContainer) {
                 crazyModeToggle.addEventListener('click', function() {
                     cardsContainer.classList.toggle('crazy-mode');
                     this.classList.toggle('active');
-                    
                     const isCrazyMode = cardsContainer.classList.contains('crazy-mode');
                     localStorage.setItem('crazyMode', isCrazyMode);
                 });
@@ -246,6 +344,8 @@
                     crazyModeToggle.classList.add('active');
                 }
             }
+
+            showPage(1, filteredProducts);
         });
     </script>
 {% endblock %}

@@ -1,9 +1,8 @@
 from flask import Flask, render_template, request, url_for, redirect, abort
 from pymongo import MongoClient
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, timedelta, time
 from dotenv import load_dotenv
 import os
-from bson.regex import Regex
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import threading
 
@@ -21,14 +20,44 @@ utc_tz = ZoneInfo("UTC")
 
 lock = threading.Lock()
 
+cached_messages = None
+cache_timestamp = None
+
+def should_refresh_cache():
+    """
+    Determine if the cache needs to be refreshed based on current time.
+    Cache should be refreshed if:
+    1. Cache is empty
+    2. It's past 19:00 UTC and cache was last updated before 19:00 UTC today
+    """
+    global cache_timestamp
+    
+    if cached_messages is None or cache_timestamp is None:
+        return True
+        
+    current_time = dt.now(utc_tz)
+    update_time = time(19, 0)
+    
+    if current_time.time() >= update_time:
+        cache_day = cache_timestamp.date()
+        if cache_day < current_time.date() or (
+            cache_day == current_time.date() and 
+            cache_timestamp.time() < update_time
+        ):
+            return True
+            
+    elif cache_timestamp < (
+        current_time.replace(
+            hour=19, minute=0, second=0, microsecond=0
+        ) - timedelta(days=1)
+    ):
+        return True
+        
+    return False
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    selected_date = None
-    search_query = None
     messages = []
-    page = request.args.get('page', 1, type=int)
-    per_page = 9
-
     timezone_str = request.cookies.get('timezone')
     if timezone_str:
         try:
@@ -56,99 +85,48 @@ def index():
             'label': label
         })
 
-    if request.method == 'POST':
-        selected_date = request.form.get('date')
-        search_query = request.form.get('search')
-        return redirect(url_for('index', date=selected_date, search=search_query))
-    else:
-        selected_date = request.args.get('date')
-        search_query = request.args.get('search')
-
-        query = {}
-
-        if selected_date:
-            try:
-                date_obj = dt.strptime(selected_date, '%d/%m/%Y')
-
-                date_obj = date_obj.replace(tzinfo=user_tz)
-                start_day_user = date_obj
-                end_day_user = start_day_user + timedelta(days=1)
-
-                start_day_utc = start_day_user.astimezone(utc_tz)
-                end_day_utc = end_day_user.astimezone(utc_tz)
-
-                query["date"] = {
-                    "$gte": start_day_utc,
-                    "$lt": end_day_utc
+    global cached_messages, cache_timestamp
+    
+    cache_info = {}
+    if should_refresh_cache():
+        with lock:
+            if should_refresh_cache():
+                messages = list(coles_updates_collection.find().sort("date", -1))
+                cached_messages = messages
+                cache_timestamp = dt.now(utc_tz)
+                cache_info = {
+                    'status': 'miss',
+                    'timestamp': cache_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
                 }
-            except ValueError:
-                selected_date = None
+    else:
+        cache_info = {
+            'status': 'hit',
+            'timestamp': cache_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
+        }
+    
+    messages = cached_messages
+    total_messages = len(messages)
 
-        if search_query:
-            app.logger.debug(f"Search query: {search_query}")
-            or_conditions = [
-                {"item_brand": Regex(f'.*{search_query}.*', 'i')},
-                {"item_name": Regex(f'.*{search_query}.*', 'i')}
-            ]
+    for message in messages:
+        if message.get("date"):
+            date_obj = message["date"]
+            if date_obj.tzinfo is None:
+                date_obj = date_obj.replace(tzinfo=utc_tz)
+            else:
+                date_obj = date_obj.astimezone(utc_tz)
 
-            sample_doc = coles_updates_collection.find_one()
-            if sample_doc and 'item_id' in sample_doc:
-                app.logger.debug(f"Sample item_id: {sample_doc['item_id']} (type: {type(sample_doc['item_id'])})")
+            message["date_iso"] = date_obj.isoformat()
+            message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
+            local_date_obj = date_obj.astimezone(user_tz)
+            message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
 
-            try:
-                search_number = int(search_query)
-                or_conditions.append({"item_id": search_number})
-                app.logger.debug(f"Added numeric item_id condition with value: {search_number}")
-            except ValueError:
-                app.logger.debug("Search query is not a number, skipping numeric item_id condition.")
-
-            query["$or"] = or_conditions
-
-        # if search_query:
-        #     # Create a case-insensitive regex for partial matching
-        #     regex = Regex(f'.*{search_query}.*', 'i')  # 'i' for case-insensitive
-        #     query["$or"] = [
-        #         {"item_brand": regex},
-        #         {"item_name": regex},
-        #         {"item_id": regex}
-        #     ]
-        total_messages = coles_updates_collection.count_documents(query)
-        total_pages = (total_messages + per_page - 1) // per_page
-
-        app.logger.debug(f"Query: {query}")
-
-        messages = list(
-            coles_updates_collection.find(query)
-            .sort("date", -1)
-            .skip((page - 1) * per_page)
-            .limit(per_page)
-        )
-
-        for message in messages:
-            if message.get("date"):
-                date_obj = message["date"]
-                if date_obj.tzinfo is None:
-                    date_obj = date_obj.replace(tzinfo=utc_tz)
-                else:
-                    date_obj = date_obj.astimezone(utc_tz)
-
-                message["date_iso"] = date_obj.isoformat()
-
-                message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
-
-                local_date_obj = date_obj.astimezone(user_tz)
-                message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
-
-        return render_template(
-            'index.html',
-            messages=messages,
-            total_messages=total_messages,
-            selected_date=selected_date,
-            search_query=search_query,
-            page=page,
-            total_pages=total_pages,
-            date_buttons=date_buttons
-        )
+    return render_template(
+        'index.html',
+        messages=messages,
+        total_messages=total_messages,
+        date_buttons=date_buttons,
+        cache_info=cache_info
+    )
 
 @app.route('/item/<int:item_id>')
 def item(item_id):
