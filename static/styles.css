@@ -254,24 +254,32 @@ a.text-decoration-none .card {
     transition: background-color 0.3s, color 0.3s;
 }
 
-.pagination > .active > span {
-    color: var(--pagination-active-text);
-    background-color: var(--pagination-active-bg);
+.pagination .page-link {
+    color: var(--text-color) !important;
+    background-color: var(--pagination-link-bg) !important;
+    border: none !important;
+    margin: 0 2px;
+    border-radius: 4px;
 }
 
-.pagination .disabled > span {
-    color: var(--text-color);
-    background-color: var(--pagination-disabled-bg);
+.pagination .page-link:focus {
+    box-shadow: none;
 }
 
-.pagination a {
-    color: var(--text-color);
-    background-color: var(--pagination-link-bg);
+.pagination .page-link:hover {
+    background-color: var(--pagination-hover-bg) !important;
 }
 
-#bootstrap-overrides a:hover {
-    color: var(--text-color);
-    background-color: var(--pagination-hover-bg);
+.pagination > .active > .page-link {
+    background-color: var(--pagination-active-bg) !important;
+    color: var(--pagination-active-text) !important;
+    border: none !important;
+}
+
+.pagination > .disabled > .page-link {
+    background-color: var(--pagination-disabled-bg) !important;
+    color: var(--text-color) !important;
+    border: none !important;
 }
 
 #darkModeToggle {

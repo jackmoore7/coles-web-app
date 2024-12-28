@@ -51,7 +51,7 @@
 
     <h4 class="mb-3">
         <span id="countDisplay">{{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }}</span>
-        <span id="dateDisplay">{% if selected_date %}on {{ selected_date }}{% endif %}</span>
+        <span id="dateDisplay"></span>
     </h4>
 
     {% if messages %}
@@ -187,7 +187,7 @@
                     countDisplay.textContent = countText;
                 }
                 if (dateDisplay) {
-                    dateDisplay.textContent = selectedDate ? (selectedDateLabel ? ` on ${selectedDateLabel}` : ` on ${selectedDate}`) : '';
+                    dateDisplay.textContent = selectedDate ? ` on ${selectedDate}` : '';
                 }
 
                 const ul = document.querySelector('nav[aria-label="Page navigation"] ul');
