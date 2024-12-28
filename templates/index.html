@@ -19,17 +19,15 @@
 {% endblock %}
 
 {% block content %}
-    <a href="/">
-        <div class="d-flex justify-content-center mb-4">
-            <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
-        </div>
-    </a>
+    <div class="d-flex justify-content-center mb-4" style="cursor: pointer;" id="resetAll">
+        <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+    </div>
     <div id="cardsView">
         <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
 
         <div class="input-group mb-4">
             <input type="search" class="form-control" id="searchInput" placeholder="Search by Brand, Name, or ID" aria-label="Search">
-            <button class="btn btn-outline-secondary" type="button" onclick="window.location.reload()">Reset</button>
+            <button class="btn btn-outline-secondary" type="button" id="resetButton">Reset</button>
         </div>
 
         <div class="mb-4 d-flex justify-content-center">
@@ -502,6 +500,23 @@
             }
 
             showPage(1, filteredProducts);
+
+            function resetAll() {
+                searchInput.value = '';
+                searchTerm = '';
+                
+                selectedDate = null;
+                selectedDateLabel = '';
+                document.querySelectorAll('.date-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                filteredProducts = [...allProducts];
+                filterProducts();
+            }
+
+            document.getElementById('resetButton').addEventListener('click', resetAll);
+            document.getElementById('resetAll').addEventListener('click', resetAll);
         });
     </script>
 {% endblock %}
