@@ -28,7 +28,7 @@ def should_refresh_cache():
     Determine if the cache needs to be refreshed based on current time.
     Cache should be refreshed if:
     1. Cache is empty
-    2. It's past 19:00 UTC and cache was last updated before 19:00 UTC today
+    2. It's past 20:00 UTC and cache was last updated before 20:00 UTC today
     """
     global cache_timestamp
     
@@ -36,7 +36,7 @@ def should_refresh_cache():
         return True
         
     current_time = dt.now(utc_tz)
-    update_time = time(19, 0)
+    update_time = time(20, 0)
     
     if current_time.time() >= update_time:
         cache_day = cache_timestamp.date()
@@ -48,7 +48,7 @@ def should_refresh_cache():
             
     elif cache_timestamp < (
         current_time.replace(
-            hour=19, minute=0, second=0, microsecond=0
+            hour=20, minute=0, second=0, microsecond=0
         ) - timedelta(days=1)
     ):
         return True
