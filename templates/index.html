@@ -30,8 +30,8 @@
             <button class="btn btn-outline-secondary" type="button" id="resetButton">Reset</button>
         </div>
 
-        <div class="mb-4 d-flex justify-content-center">
-            <div class="btn-group flex-wrap d-none d-md-flex" role="group" aria-label="Date range">
+        <div class="mb-4 d-flex justify-content-center flex-column align-items-center">
+            <div class="btn-group flex-wrap d-none d-md-flex mb-2" role="group" aria-label="Date range">
                 {% for button in date_buttons %}
                     <button type="button" 
                             class="btn btn-custom-white mb-2 mx-1 date-button"
@@ -45,7 +45,21 @@
                 </button>
             </div>
 
-            <div class="dropdown d-md-none w-100">
+            <div class="dropdown mb-2">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Sort by Date
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <li>
+                        <a class="dropdown-item sort-option active" href="#" data-sort="date">Sort by Date</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item sort-option" href="#" data-sort="increase">Sort by Biggest Increase</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="dropdown d-md-none w-100" data-bs-theme="light">
                 <button class="btn btn-outline-secondary btn-lg w-100 dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                     Select Date
                 </button>
@@ -88,12 +102,13 @@
                                 <h5 class="card-title">
                                     {{ message.item_brand }} {{ message.item_name }}
                                 </h5>
-                                <p class="card-text">
-                                    <h5 class="card-title">${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }} (+{{ ((message.price_after - message.price_before) / message.price_before * 100)|round(2) }}%)</h5>
+                                <div class="card-text">
+                                    {% set increase = ((message.price_after - message.price_before) / message.price_before * 100)|round(2) %}
+                                    <h5 class="card-title" data-increase="{{ increase }}">${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }} (+{{ increase }}%)</h5>
                                     <strong>Item ID:</strong> {{ message.item_id }}<br>
                                     <strong>Date:</strong> 
                                     <span class="date">{{ message.date_formatted_local }}</span>
-                                </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -128,7 +143,6 @@
                     <div class="modal-body">
                         <p>Data is retrieved from Coles at the date and time specified on each product record. Prices may differ per store. Data collection started on 8/9/24.</p>
                         <p>No data is collected from the website user, other than baseline data collected by hosting services.</p>
-                        <p>"Down Down" hand image is &copy; Coles.</p>
                         <p>You can contact me at <samp>*@pricesareup.com</samp></p>
                     </div>
                     <div class="modal-footer">
@@ -291,14 +305,19 @@
             let selectedDate = null;
             let selectedDateLabel = '';
             let searchTerm = '';
+            let currentSort = 'date';
             
             const allProducts = Array.from(cards).map(card => {
                 const dateText = card.querySelector('.date').textContent.trim();
+                const increase = parseFloat(card.querySelector('.card-text h5').dataset.increase);
+
                 return {
                     element: card,
                     searchText: (card.querySelector('.card-title').textContent + ' ' + 
                                card.querySelector('.card-text').textContent).toLowerCase(),
-                    date: dateText
+                    date: dateText,
+                    increase: increase,
+                    timestamp: new Date(dateText.split(' ')[0].split('/').reverse().join('-')).getTime()
                 };
             });
 
@@ -310,6 +329,13 @@
                     const matchesDate = !selectedDate || product.date.includes(selectedDate);
                     return matchesSearch && matchesDate;
                 });
+
+                if (currentSort === 'increase') {
+                    filteredProducts.sort((a, b) => b.increase - a.increase);
+                } else {
+                    filteredProducts.sort((a, b) => b.timestamp - a.timestamp);
+                }
+
                 showPage(1, filteredProducts);
             }
 
@@ -454,6 +480,19 @@
                 });
             });
 
+            document.querySelectorAll('.sort-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.sort-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    option.classList.add('active');
+                    currentSort = option.dataset.sort;
+                    document.getElementById('sortDropdown').textContent = option.textContent;
+                    filterProducts();
+                });
+            });
+
             const customDateForm = document.getElementById('custom-date-form');
             if (customDateForm) {
                 customDateForm.addEventListener('submit', function(e) {
@@ -499,7 +538,7 @@
                 }
             }
 
-            showPage(1, filteredProducts);
+            filterProducts();
 
             function resetAll() {
                 showMainView();
@@ -512,6 +551,13 @@
                 document.querySelectorAll('.date-button').forEach(btn => {
                     btn.classList.remove('active');
                 });
+                
+                currentSort = 'date';
+                document.querySelectorAll('.sort-option').forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                document.querySelector('.sort-option[data-sort="date"]').classList.add('active');
+                document.getElementById('sortDropdown').textContent = 'Sort by Date';
                 
                 filteredProducts = [...allProducts];
                 filterProducts();

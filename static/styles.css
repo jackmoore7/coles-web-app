@@ -73,7 +73,7 @@ h1, h6 {
 }
 
 .card-text {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: var(--card-text-color);
 }
 
@@ -437,4 +437,24 @@ body, .card, .btn-custom-white, .btn-custom-red, .dark-mode-toggle {
 
 .modal-footer .btn {
     font-size: 1rem;
+}
+
+.dropdown-menu {
+    background-color: var(--card-bg);
+    border: none;
+}
+
+.dropdown-item {
+    color: var(--card-text-color);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--pagination-hover-bg);
+    color: var(--card-text-color);
+}
+
+.dropdown-item.active {
+    background-color: var(--btn-custom-red-bg);
+    color: var(--btn-custom-red-text);
 }
