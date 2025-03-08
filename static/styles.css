@@ -209,8 +209,8 @@ a.text-decoration-none .card {
     color: var(--btn-custom-red-text);
 }
 
-.btn-group {
-    margin: 0;
+.btn-group.gap-1 {
+    gap: 2px;
 }
 
 @media (max-width: 768px) {

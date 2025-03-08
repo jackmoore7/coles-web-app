@@ -31,16 +31,16 @@
         </div>
 
         <div class="mb-4 d-flex justify-content-center flex-column align-items-center">
-            <div class="btn-group flex-wrap d-none d-md-flex mb-2" role="group" aria-label="Date range">
-                {% for button in date_buttons %}
-                    <button type="button" 
-                            class="btn btn-custom-white mb-2 mx-1 date-button"
+<div class="btn-group flex-wrap d-none d-md-flex mb-2 gap-1" role="group" aria-label="Date range">
+    {% for button in date_buttons %}
+        <button type="button" 
+                class="btn btn-custom-white mb-2 date-button" 
                             data-date="{{ button.date_str }}"
                             data-label="{{ button.label }}">
                         {{ button.label }}
                     </button>
                 {% endfor %}
-                <button type="button" class="btn btn-custom-white mb-2 mx-1" data-bs-toggle="modal" data-bs-target="#customDateModal">
+    <button type="button" class="btn btn-custom-white mb-2" data-bs-toggle="modal" data-bs-target="#customDateModal">
                     Custom Date
                 </button>
             </div>
@@ -349,8 +349,10 @@
                     product.element.style.display = 'none';
                 });
 
+                const container = document.getElementById('cardsContainer');
                 productsToShow.forEach(product => {
                     product.element.style.display = '';
+                    container.appendChild(product.element);
                 });
 
                 const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
