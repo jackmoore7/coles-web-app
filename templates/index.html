@@ -104,7 +104,16 @@
                                 </h5>
                                 <div class="card-text">
                                     {% set increase = ((message.price_after - message.price_before) / message.price_before * 100)|round(2) %}
-                                    <h5 class="card-title" data-increase="{{ increase }}">${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }} (+{{ increase }}%)</h5>
+                                    <h5 class="card-title" data-increase="{{ increase }}">
+                                        ${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }}
+                                        (
+                                        {% if message.price_before == 0 %}
+                                            +∞%
+                                        {% else %}
+                                            +{{ increase }}%
+                                        {% endif %}
+                                        )
+                                    </h5>
                                     <strong>Item ID:</strong> {{ message.item_id }}<br>
                                     <strong>Date:</strong> 
                                     <span class="date">{{ message.date_formatted_local }}</span>
@@ -567,8 +576,5 @@
                 history.pushState({}, '', '/');
             }
 
-            document.getElementById('resetButton').addEventListener('click', resetAll);
-            document.getElementById('resetAll').addEventListener('click', resetAll);
-        });
     </script>
 {% endblock %}
