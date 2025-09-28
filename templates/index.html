@@ -576,5 +576,9 @@
                 history.pushState({}, '', '/');
             }
 
+            document.getElementById('resetButton').addEventListener('click', resetAll);
+            document.getElementById('resetAll').addEventListener('click', resetAll);
+        });
+
     </script>
 {% endblock %}
