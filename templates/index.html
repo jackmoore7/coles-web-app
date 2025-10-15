@@ -103,16 +103,14 @@
                                     {{ message.item_brand }} {{ message.item_name }}
                                 </h5>
                                 <div class="card-text">
-                                    {% set increase = ((message.price_after - message.price_before) / message.price_before * 100)|round(2) %}
+                                    {% if message.price_before != 0 %}
+                                        {% set increase = ((message.price_after - message.price_before) / message.price_before * 100)|round(2) %}
+                                    {% else %}
+                                        {% set increase = 'Infinity' %}
+                                    {% endif %}
                                     <h5 class="card-title" data-increase="{{ increase }}">
                                         ${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }}
-                                        (
-                                        {% if message.price_before == 0 %}
-                                            +∞%
-                                        {% else %}
-                                            +{{ increase }}%
-                                        {% endif %}
-                                        )
+                                        ({% if message.price_before == 0 %}+∞%{% else %}+{{ increase }}%{% endif %})
                                     </h5>
                                     <strong>Item ID:</strong> {{ message.item_id }}<br>
                                     <strong>Date:</strong> 
@@ -318,11 +316,16 @@
             
             const allProducts = Array.from(cards).map(card => {
                 const dateText = card.querySelector('.date').textContent.trim();
-                const increase = parseFloat(card.querySelector('.card-text h5').dataset.increase);
-
+                const rawIncrease = card.querySelector('.card-text h5').dataset.increase;
+                let increase = Number(rawIncrease);
+                // If increase isn't a finite number (e.g. 'Infinity' or non-numeric), treat it as Infinity for sorting
+                if (!isFinite(increase)) {
+                    increase = Infinity;
+                }
+    
                 return {
                     element: card,
-                    searchText: (card.querySelector('.card-title').textContent + ' ' + 
+                    searchText: (card.querySelector('.card-title').textContent + ' ' +
                                card.querySelector('.card-text').textContent).toLowerCase(),
                     date: dateText,
                     increase: increase,
