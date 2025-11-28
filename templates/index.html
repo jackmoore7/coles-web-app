@@ -306,69 +306,63 @@
             });
 
             const searchInput = document.getElementById('searchInput');
-            const cards = document.querySelectorAll('.col-lg-4');
             const ITEMS_PER_PAGE = 9;
             let currentPage = 1;
             let selectedDate = null;
             let selectedDateLabel = '';
             let searchTerm = '';
             let currentSort = 'date';
-            
-            const allProducts = Array.from(cards).map(card => {
-                const dateText = card.querySelector('.date').textContent.trim();
-                const rawIncrease = card.querySelector('.card-text h5').dataset.increase;
-                let increase = Number(rawIncrease);
-                // If increase isn't a finite number (e.g. 'Infinity' or non-numeric), treat it as Infinity for sorting
-                if (!isFinite(increase)) {
-                    increase = Infinity;
-                }
-    
-                return {
-                    element: card,
-                    searchText: (card.querySelector('.card-title').textContent + ' ' +
-                               card.querySelector('.card-text').textContent).toLowerCase(),
-                    date: dateText,
-                    increase: increase,
-                    timestamp: new Date(dateText.split(' ')[0].split('/').reverse().join('-')).getTime()
-                };
-            });
+            let totalCount = {{ total_messages }};
+            let totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-            let filteredProducts = [...allProducts];
-
-            function filterProducts() {
-                filteredProducts = allProducts.filter(product => {
-                    const matchesSearch = !searchTerm || product.searchText.includes(searchTerm);
-                    const matchesDate = !selectedDate || product.date.includes(selectedDate);
-                    return matchesSearch && matchesDate;
+            function renderMessages(messages) {
+                const container = document.getElementById('cardsContainer');
+                container.innerHTML = '';
+                messages.forEach(message => {
+                    const increase = message.increase;
+                    const increaseText = isFinite(increase) ? `+${increase.toFixed(2)}%` : '+∞%';
+                    const cardHtml = `
+                        <div class="col-lg-4 col-md-6 mb-4 item-container" onclick="loadItem(${message.item_id})">
+                            <div class="card h-100 shadow-sm position-relative" style="cursor: pointer;">
+                                ${message.image_url ? `<img src="${message.image_url}" class="card-img-top" alt="${message.item_name}" loading="lazy" onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">` : `<img src="{{ url_for('static', filename='placeholder.png') }}" class="card-img-top" alt="No Image Available" loading="lazy">`}
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">${message.item_brand} ${message.item_name}</h5>
+                                    <div class="card-text">
+                                        <h5 class="card-title" data-increase="${increase}">
+                                            $${message.price_before} <span>→</span> $${message.price_after} (${increaseText})
+                                        </h5>
+                                        <strong>Item ID:</strong> ${message.item_id}<br>
+                                        <strong>Date:</strong> <span class="date">${message.date_formatted_local}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', cardHtml);
                 });
-
-                if (currentSort === 'increase') {
-                    filteredProducts.sort((a, b) => b.increase - a.increase);
-                } else {
-                    filteredProducts.sort((a, b) => b.timestamp - a.timestamp);
-                }
-
-                showPage(1, filteredProducts);
             }
 
-            function showPage(page, products) {
-                currentPage = page;
-                const start = (page - 1) * ITEMS_PER_PAGE;
-                const end = start + ITEMS_PER_PAGE;
-                const productsToShow = products.slice(start, end);
+            async function fetchMessages(page = 1, date = selectedDate, search = searchTerm, sort = currentSort) {
+                try {
+                    const params = new URLSearchParams({
+                        page: page,
+                        per_page: ITEMS_PER_PAGE,
+                        sort: sort
+                    });
+                    if (date) params.append('date', date);
+                    if (search) params.append('search', search);
 
-                allProducts.forEach(product => {
-                    product.element.style.display = 'none';
-                });
+                    const response = await fetch(`/api/messages?${params}`);
+                    const data = await response.json();
 
-                const container = document.getElementById('cardsContainer');
-                productsToShow.forEach(product => {
-                    product.element.style.display = '';
-                    container.appendChild(product.element);
-                });
-
-                const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
-                updatePaginationUI(page, totalPages, products.length);
+                    renderMessages(data.messages);
+                    currentPage = data.page;
+                    totalCount = data.total_count;
+                    totalPages = data.total_pages;
+                    updatePaginationUI(currentPage, totalPages, totalCount);
+                } catch (error) {
+                    console.error('Error fetching messages:', error);
+                }
             }
 
             function updatePaginationUI(page, totalPages, totalItems) {
@@ -389,6 +383,8 @@
                 if (!ul) return;
                 ul.innerHTML = '';
 
+                if (totalPages <= 1) return;
+
                 const prevLi = document.createElement('li');
                 prevLi.className = `page-item ${page === 1 ? 'disabled' : ''}`;
                 prevLi.innerHTML = `
@@ -399,7 +395,7 @@
                 if (page > 1) {
                     prevLi.querySelector('a').addEventListener('click', (e) => {
                         e.preventDefault();
-                        showPage(page - 1, filteredProducts);
+                        fetchMessages(page - 1);
                     });
                 }
                 ul.appendChild(prevLi);
@@ -441,7 +437,7 @@
                 if (page < totalPages) {
                     nextLi.querySelector('a').addEventListener('click', (e) => {
                         e.preventDefault();
-                        showPage(page + 1, filteredProducts);
+                        fetchMessages(page + 1);
                     });
                 }
                 ul.appendChild(nextLi);
@@ -456,7 +452,7 @@
                 if (pageNum !== currentPage) {
                     li.querySelector('a').addEventListener('click', (e) => {
                         e.preventDefault();
-                        showPage(pageNum, filteredProducts);
+                        fetchMessages(pageNum);
                     });
                 }
                 return li;
@@ -490,7 +486,7 @@
                     button.classList.add('active');
                     selectedDate = button.dataset.date;
                     selectedDateLabel = button.dataset.label;
-                    filterProducts();
+                    fetchMessages(1);
                 });
             });
 
@@ -503,7 +499,7 @@
                     option.classList.add('active');
                     currentSort = option.dataset.sort;
                     document.getElementById('sortDropdown').textContent = option.textContent;
-                    filterProducts();
+                    fetchMessages(1);
                 });
             });
 
@@ -518,13 +514,13 @@
                     const year = date.getFullYear();
                     selectedDate = `${day}/${month}/${year}`;
                     selectedDateLabel = '';
-                    
+
                     document.querySelectorAll('.date-button').forEach(btn => {
                         btn.classList.remove('active');
                     });
-                    
-                    filterProducts();
-                    
+
+                    fetchMessages(1);
+
                     const modal = bootstrap.Modal.getInstance(document.getElementById('customDateModal'));
                     modal.hide();
                 });
@@ -532,7 +528,7 @@
 
             searchInput.addEventListener('input', debounce((e) => {
                 searchTerm = e.target.value.toLowerCase();
-                filterProducts();
+                fetchMessages(1);
             }, 150));
 
             const crazyModeToggle = document.getElementById('crazyModeToggle');
@@ -552,29 +548,28 @@
                 }
             }
 
-            filterProducts();
+            updatePaginationUI(currentPage, totalPages, totalCount);
 
             function resetAll() {
                 showMainView();
 
                 searchInput.value = '';
                 searchTerm = '';
-                
+
                 selectedDate = null;
                 selectedDateLabel = '';
                 document.querySelectorAll('.date-button').forEach(btn => {
                     btn.classList.remove('active');
                 });
-                
+
                 currentSort = 'date';
                 document.querySelectorAll('.sort-option').forEach(opt => {
                     opt.classList.remove('active');
                 });
                 document.querySelector('.sort-option[data-sort="date"]').classList.add('active');
                 document.getElementById('sortDropdown').textContent = 'Sort by Date';
-                
-                filteredProducts = [...allProducts];
-                filterProducts();
+
+                fetchMessages(1);
 
                 history.pushState({}, '', '/');
             }

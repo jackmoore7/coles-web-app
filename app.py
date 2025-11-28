@@ -57,7 +57,6 @@ def should_refresh_cache():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    messages = []
     timezone_str = request.cookies.get('timezone')
     if timezone_str:
         try:
@@ -86,13 +85,13 @@ def index():
         })
 
     global cached_messages, cache_timestamp
-    
+
     cache_info = {}
     if should_refresh_cache():
         with lock:
             if should_refresh_cache():
-                messages = list(coles_updates_collection.find().sort("date", -1))
-                cached_messages = messages
+                temp_messages = list(coles_updates_collection.find().sort("date", -1))
+                cached_messages = temp_messages
                 cache_timestamp = dt.now(utc_tz)
                 cache_info = {
                     'status': 'miss',
@@ -103,11 +102,9 @@ def index():
             'status': 'hit',
             'timestamp': cache_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
         }
-    
-    messages = cached_messages
-    total_messages = len(messages)
 
-    for message in messages:
+    processed_messages = []
+    for message in cached_messages:
         if message.get("date"):
             date_obj = message["date"]
             if date_obj.tzinfo is None:
@@ -119,6 +116,20 @@ def index():
             message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
             local_date_obj = date_obj.astimezone(user_tz)
             message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
+            message["timestamp"] = local_date_obj.timestamp()
+
+            if message.get("price_before", 0) != 0:
+                increase = ((message["price_after"] - message["price_before"]) / message["price_before"] * 100)
+            else:
+                increase = float('inf')
+            message["increase"] = increase
+
+            processed_messages.append(message)
+
+    processed_messages.sort(key=lambda m: m["timestamp"], reverse=True)
+
+    messages = processed_messages[:9]
+    total_messages = len(processed_messages)
 
     return render_template(
         'index.html',
@@ -282,6 +293,92 @@ def item(item_id):
         cache_info=cache_info,
         initial_item=item_data
     )
+
+@app.route('/api/messages')
+def api_messages():
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 9))
+    selected_date = request.args.get('date', None)
+    search_term = request.args.get('search', '').lower()
+    sort_by = request.args.get('sort', 'date')
+
+    timezone_str = request.cookies.get('timezone')
+    user_tz = utc_tz
+    if timezone_str:
+        try:
+            user_tz = ZoneInfo(timezone_str)
+        except ZoneInfoNotFoundError:
+            user_tz = utc_tz
+
+    global cached_messages, cache_timestamp
+    if should_refresh_cache():
+        with lock:
+            if should_refresh_cache():
+                temp_messages = list(coles_updates_collection.find().sort("date", -1))
+                cached_messages = temp_messages
+                cache_timestamp = dt.now(utc_tz)
+
+    messages = cached_messages
+
+    processed_messages = []
+    for message in messages:
+        if message.get("date"):
+            date_obj = message["date"]
+            if date_obj.tzinfo is None:
+                date_obj = date_obj.replace(tzinfo=utc_tz)
+            else:
+                date_obj = date_obj.astimezone(utc_tz)
+
+            message["date_iso"] = date_obj.isoformat()
+            message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
+            local_date_obj = date_obj.astimezone(user_tz)
+            message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
+            message["timestamp"] = local_date_obj.timestamp()
+
+            if message.get("price_before", 0) != 0:
+                increase = ((message["price_after"] - message["price_before"]) / message["price_before"] * 100)
+            else:
+                increase = float('inf')
+            message["increase"] = increase
+
+            search_text = f"{message.get('item_brand', '')} {message.get('item_name', '')} {message.get('item_id', '')} {message.get('price_before', '')} {message.get('price_after', '')}".lower()
+
+            processed_messages.append({
+                **message,
+                "search_text": search_text
+            })
+
+    filtered_messages = processed_messages
+    if search_term:
+        filtered_messages = [m for m in filtered_messages if search_term in m["search_text"]]
+    if selected_date:
+        filtered_messages = [m for m in filtered_messages if selected_date in m["date_formatted_local"]]
+
+    if sort_by == 'increase':
+        filtered_messages.sort(key=lambda m: m["increase"], reverse=True)
+    else:
+        filtered_messages.sort(key=lambda m: m["timestamp"], reverse=True)
+
+    total_count = len(filtered_messages)
+    total_pages = (total_count + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_messages = filtered_messages[start:end]
+    
+    serializable_messages = []
+    for msg in paginated_messages:
+        msg_dict = dict(msg)
+        if '_id' in msg_dict:
+            msg_dict['_id'] = str(msg_dict['_id'])
+        serializable_messages.append(msg_dict)
+
+    return {
+        "messages": serializable_messages,
+        "total_count": total_count,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages
+    }
 
 @app.errorhandler(404)
 def not_found_error(error):
