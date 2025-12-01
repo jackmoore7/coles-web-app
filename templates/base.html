@@ -30,7 +30,7 @@
 </head>
 <body>
     <div id="noscriptCookiesBanner" class="alert alert-warning fade show text-center d-none" role="alert">
-        <strong>Heads up! Your browser has scripts disabled. Most functionalities of this site won't work as intended.</strong>
+        <strong>Heads up! Your browser is blocking cookies and/or JavaScript. Some functionalities might not work as intended.</strong>
     </div>
 
     <noscript>
@@ -53,23 +53,7 @@
 
     {% block scripts %}
         <script>
-            function formatTimestampToLocal(timestamp) {
-                const date = new Date(timestamp * 1000);
-                const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                return date.toLocaleDateString('en-AU') + ' ' + date.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit', hour12: true, timeZone: userTimeZone, timeZoneName: 'shortGeneric'});
-            }
-
-            function formatAllDates() {
-                document.querySelectorAll('.date[data-timestamp]').forEach(element => {
-                    const timestamp = parseFloat(element.getAttribute('data-timestamp'));
-                    if (!isNaN(timestamp)) {
-                        element.textContent = formatTimestampToLocal(timestamp);
-                    }
-                });
-            }
-
             document.addEventListener('DOMContentLoaded', function() {
-                formatAllDates();
                 function setCookie(name, value, days) {
                     let expires = "";
                     if (days) {
@@ -91,6 +75,21 @@
                     return null;
                 }
     
+                const timezoneCookie = getCookie('timezone');
+                if (!timezoneCookie) {
+                    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    console.log(`Detected timezone: ${userTimeZone}`);
+                    setCookie('timezone', userTimeZone, 365);
+                    if (getCookie('timezone') !== null) {
+                        console.log(`Issued a timezone cookie: ${userTimeZone}`)
+                        window.location.reload();
+                    } else {
+                        console.log(`Cookies have been disabled`);
+                        showNoscriptCookiesBanner();
+                    }  
+                } else {
+                    console.log(`Existing timezone cookie: ${timezoneCookie}`);
+                }
     
                 function showNoscriptCookiesBanner() {
                     const banner = document.getElementById('noscriptCookiesBanner');

@@ -111,8 +111,8 @@
                                         ({% if message.price_before == 0 %}+∞%{% else %}+{{ increase }}%{% endif %})
                                     </h5>
                                     <strong>Item ID:</strong> {{ message.item_id }}<br>
-                                    <strong>Date:</strong>
-                                    <span class="date" data-timestamp="{{ message.timestamp }}">{{ message.date_formatted_utc }}</span>
+                                    <strong>Date:</strong> 
+                                    <span class="date">{{ message.date_formatted_local }}</span>
                                 </div>
                             </div>
                         </div>
@@ -188,8 +188,6 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
         function showItemView(html, dates, prices, title) {
             document.getElementById('itemView').innerHTML = html;
             document.getElementById('cardsView').classList.add('hidden');
@@ -267,7 +265,7 @@
         
         async function loadItem(itemId, pushState = true) {
             try {
-                const response = await fetch(`/item/${itemId}?tz=${userTimeZone}`, {
+                const response = await fetch(`/item/${itemId}`, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -336,7 +334,7 @@
                                             $${message.price_before} <span>→</span> $${message.price_after} (${increaseText})
                                         </h5>
                                         <strong>Item ID:</strong> ${message.item_id}<br>
-                                        <strong>Date:</strong> <span class="date" data-timestamp="${message.timestamp}">${message.date_formatted_utc}</span>
+                                        <strong>Date:</strong> <span class="date">${message.date_formatted_local}</span>
                                     </div>
                                 </div>
                             </div>
@@ -351,8 +349,7 @@
                     const params = new URLSearchParams({
                         page: page,
                         per_page: ITEMS_PER_PAGE,
-                        sort: sort,
-                        tz: userTimeZone
+                        sort: sort
                     });
                     if (date) params.append('date', date);
                     if (search) params.append('search', search);
@@ -365,7 +362,6 @@
                     totalCount = data.total_count;
                     totalPages = data.total_pages;
                     updatePaginationUI(currentPage, totalPages, totalCount);
-                    formatAllDates();
                 } catch (error) {
                     console.error('Error fetching messages:', error);
                 }
@@ -482,13 +478,6 @@
                     timeout = setTimeout(later, wait);
                 };
             }
-
-            document.querySelectorAll('.date-button').forEach(button => {
-                const [day, month, year] = button.dataset.date.split('/');
-                const utcDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`);
-                const localDateStr = utcDate.toLocaleDateString('en-GB', {timeZone: userTimeZone});
-                button.dataset.date = localDateStr;
-            });
 
             document.querySelectorAll('.date-button').forEach(button => {
                 button.addEventListener('click', (e) => {
