@@ -57,17 +57,7 @@ def should_refresh_cache():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    timezone_str = request.cookies.get('timezone')
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-            app.logger.debug(f"User timezone: {timezone_str}")
-        except ZoneInfoNotFoundError:
-            app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
-            user_tz = utc_tz
-    else:
-        app.logger.debug("No timezone cookie found. Defaulting to UTC.")
-        user_tz = utc_tz
+    user_tz = utc_tz
 
     today = dt.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     last_seven_days = [today - timedelta(days=i) for i in range(0, 7)]
@@ -114,9 +104,7 @@ def index():
 
             message["date_iso"] = date_obj.isoformat()
             message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
-            local_date_obj = date_obj.astimezone(user_tz)
-            message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
-            message["timestamp"] = local_date_obj.timestamp()
+            message["timestamp"] = date_obj.timestamp()
 
             if message.get("price_before", 0) != 0:
                 increase = ((message["price_after"] - message["price_before"]) / message["price_before"] * 100)
@@ -151,14 +139,11 @@ def item(item_id):
     item_name = first_record.get('item_name', 'Unknown Name')
     image_url = first_record.get('image_url', None)
 
-    timezone_str = request.cookies.get('timezone')
-    user_tz = utc_tz
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-            app.logger.debug(f"User timezone: {timezone_str}")
-        except ZoneInfoNotFoundError:
-            app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
+    tz = request.args.get('tz', 'UTC')
+    try:
+        user_tz = ZoneInfo(tz)
+    except ZoneInfoNotFoundError:
+        user_tz = utc_tz
 
     dates = []
     prices = []
@@ -225,17 +210,6 @@ def item(item_id):
         return item_data
     
     messages = []
-    timezone_str = request.cookies.get('timezone')
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-            app.logger.debug(f"User timezone: {timezone_str}")
-        except ZoneInfoNotFoundError:
-            app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
-            user_tz = utc_tz
-    else:
-        app.logger.debug("No timezone cookie found. Defaulting to UTC.")
-        user_tz = utc_tz
 
     today = dt.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     last_seven_days = [today - timedelta(days=i) for i in range(0, 7)]
@@ -271,21 +245,8 @@ def item(item_id):
             'timestamp': cache_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
         }
     
-    messages = cached_messages
-    total_messages = len(messages)
-
-    for message in messages:
-        if message.get("date"):
-            date_obj = message["date"]
-            if date_obj.tzinfo is None:
-                date_obj = date_obj.replace(tzinfo=utc_tz)
-            else:
-                date_obj = date_obj.astimezone(utc_tz)
-
-            message["date_iso"] = date_obj.isoformat()
-            message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
-            local_date_obj = date_obj.astimezone(user_tz)
-            message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
+    messages = []
+    total_messages = len(cached_messages)
 
     return render_template(
         'index.html',
@@ -304,14 +265,12 @@ def api_messages():
     selected_date = request.args.get('date', None)
     search_term = request.args.get('search', '').lower()
     sort_by = request.args.get('sort', 'date')
+    tz = request.args.get('tz', 'UTC')
 
-    timezone_str = request.cookies.get('timezone')
-    user_tz = utc_tz
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-        except ZoneInfoNotFoundError:
-            user_tz = utc_tz
+    try:
+        user_tz = ZoneInfo(tz)
+    except ZoneInfoNotFoundError:
+        user_tz = utc_tz
 
     global cached_messages, cache_timestamp
     if should_refresh_cache():
@@ -334,9 +293,7 @@ def api_messages():
 
             message["date_iso"] = date_obj.isoformat()
             message["date_formatted_utc"] = date_obj.strftime('%d/%m/%Y %H:%M:%S UTC')
-            local_date_obj = date_obj.astimezone(user_tz)
-            message["date_formatted_local"] = local_date_obj.strftime('%d/%m/%Y %I:%M %p %Z')
-            message["timestamp"] = local_date_obj.timestamp()
+            message["timestamp"] = date_obj.timestamp()
 
             if message.get("price_before", 0) != 0:
                 increase = ((message["price_after"] - message["price_before"]) / message["price_before"] * 100)
@@ -355,7 +312,17 @@ def api_messages():
     if search_term:
         filtered_messages = [m for m in filtered_messages if search_term in m["search_text"]]
     if selected_date:
-        filtered_messages = [m for m in filtered_messages if selected_date in m["date_formatted_local"]]
+        try:
+            day, month, year = selected_date.split('/')
+            selected_date_obj = dt(int(year), int(month), int(day))
+            selected_date_obj = selected_date_obj.replace(tzinfo=user_tz)
+            start_utc = selected_date_obj.astimezone(utc_tz)
+            end_utc = start_utc + timedelta(days=1)
+            start_ts = start_utc.timestamp()
+            end_ts = end_utc.timestamp()
+            filtered_messages = [m for m in filtered_messages if start_ts <= m["timestamp"] < end_ts]
+        except ValueError:
+            pass
 
     if sort_by == 'increase':
         filtered_messages.sort(key=lambda m: m["increase"], reverse=True)
