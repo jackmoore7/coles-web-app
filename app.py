@@ -213,10 +213,12 @@ def item(item_id):
             percentage_change_latest=percentage_change_latest,
             item_id=item_id,
             item_url=item_url,
-            user_tz=user_tz
+            user_tz=user_tz,
+            title=f"{item_brand} {item_name}"
         ),
         'dates': dates,
-        'prices': prices
+        'prices': prices,
+        'title': f"{item_brand} {item_name}"
     }
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -291,7 +293,8 @@ def item(item_id):
         total_messages=total_messages,
         date_buttons=date_buttons,
         cache_info=cache_info,
-        initial_item=item_data
+        initial_item=item_data,
+        title=f"{item_brand} {item_name}"
     )
 
 @app.route('/api/messages')
@@ -393,6 +396,30 @@ def internal_error(error):
                          error_code=500,
                          error_message='Internal Server Error',
                          error_description='Something went wrong on our end. Please try again later.'), 500
+
+@app.route('/robots.txt')
+def robots_txt():
+    return app.response_class(
+        'User-agent: *\nAllow: /\n\nSitemap: https://pricesareup.com/sitemap.xml',
+        mimetype='text/plain'
+    )
+
+@app.route('/sitemap.xml')
+def sitemap():
+    urls = [{'loc': 'https://pricesareup.com/', 'lastmod': '2025-11-29', 'changefreq': 'daily', 'priority': '1.0'}]
+    item_ids = coles_updates_collection.distinct("item_id")
+    for item_id in item_ids:
+        urls.append({
+            'loc': f'https://pricesareup.com/item/{item_id}',
+            'lastmod': '2025-11-29',
+            'changefreq': 'weekly',
+            'priority': '0.8'
+        })
+    sitemap_content = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for url in urls:
+        sitemap_content += f'<url>\n<loc>{url["loc"]}</loc>\n<lastmod>{url["lastmod"]}</lastmod>\n<changefreq>{url["changefreq"]}</changefreq>\n<priority>{url["priority"]}</priority>\n</url>\n'
+    sitemap_content += '</urlset>'
+    return app.response_class(sitemap_content, mimetype='application/xml')
 
 if __name__ == '__main__':
     app.run(debug=True)

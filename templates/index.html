@@ -1,7 +1,5 @@
 {% extends "base.html" %}
 
-{% block title %}{% endblock %}
-
 {% block head %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -190,11 +188,14 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        function showItemView(html, dates, prices) {
+        function showItemView(html, dates, prices, title) {
             document.getElementById('itemView').innerHTML = html;
             document.getElementById('cardsView').classList.add('hidden');
             document.getElementById('pagination').classList.add('hidden');
             document.getElementById('itemView').style.display = 'block';
+            if (title) {
+                document.title = title + " | pricesareup.com";
+            }
 
             const ctx = document.getElementById('priceHistoryChart').getContext('2d');
             new Chart(ctx, {
@@ -255,6 +256,7 @@
             document.getElementById('itemView').style.display = 'none';
             document.getElementById('cardsView').classList.remove('hidden');
             document.getElementById('pagination').classList.remove('hidden');
+            document.title = "pricesareup.com";
         }
 
         window.goBack = function() {
@@ -270,7 +272,7 @@
                 });
                 const data = await response.json();
                 
-                showItemView(data.html, data.dates, data.prices);
+                showItemView(data.html, data.dates, data.prices, data.title);
                 if (pushState) {
                     history.pushState({ itemId }, '', `/item/${itemId}`);
                 }
@@ -289,7 +291,7 @@
 
             const initialItem = {{ initial_item|tojson|safe if initial_item else 'null' }};
             if (initialItem) {
-                showItemView(initialItem.html, initialItem.dates, initialItem.prices);
+                showItemView(initialItem.html, initialItem.dates, initialItem.prices, initialItem.title);
             } else {
                 const match = window.location.pathname.match(/^\/item\/(\d+)$/);
                 if (match) {
