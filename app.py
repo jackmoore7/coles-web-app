@@ -12,9 +12,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 MONGODB_URI = os.getenv('MONGODB_URI')
-client = MongoClient(MONGODB_URI)
-db = client['coles']
-coles_updates_collection = db['coles_updates']
+client = None
+db = None
+coles_updates_collection = None
+
+def get_coles_updates_collection():
+    global client, db, coles_updates_collection
+    if client is None:
+        client = MongoClient(MONGODB_URI)
+        db = client['coles']
+        coles_updates_collection = db['coles_updates']
+    return coles_updates_collection
 
 utc_tz = ZoneInfo("UTC")
 
@@ -90,7 +98,7 @@ def index():
     if should_refresh_cache():
         with lock:
             if should_refresh_cache():
-                temp_messages = list(coles_updates_collection.find().sort("date", -1))
+                temp_messages = list(get_coles_updates_collection().find().sort("date", -1))
                 cached_messages = temp_messages
                 cache_timestamp = dt.now(utc_tz)
                 cache_info = {
@@ -141,7 +149,7 @@ def index():
 
 @app.route('/item/<int:item_id>')
 def item(item_id):
-    item_records = list(coles_updates_collection.find({"item_id": item_id}).sort("date", 1))
+    item_records = list(get_coles_updates_collection().find({"item_id": item_id}).sort("date", 1))
 
     if not item_records:
         abort(404)
@@ -160,14 +168,24 @@ def item(item_id):
         except ZoneInfoNotFoundError:
             app.logger.error(f"Invalid timezone in cookie: {timezone_str}. Defaulting to UTC.")
 
-    dates = []
-    prices = []
+    price_points = []
+    if item_records:
+        initial_price = item_records[0].get("price_before", 0)
+        fixed_date = dt(2024, 9, 8, tzinfo=utc_tz).astimezone(user_tz)
+        price_points.append((fixed_date, initial_price))
+
     for record in item_records:
         if record.get("date"):
             date_obj = record["date"].replace(tzinfo=utc_tz).astimezone(user_tz)
-            formatted_date = date_obj.strftime('%d/%m/%Y')
-            dates.append(formatted_date)
-            prices.append(record.get("price_after", 0))
+            price_after = record.get("price_after", 0)
+            price_points.append((date_obj, price_after))
+
+    unique_points = list(set(price_points))
+
+    unique_points.sort(key=lambda x: (x[0], x[1]))
+
+    dates = [p[0].strftime('%d/%m/%Y') for p in unique_points]
+    prices = [p[1] for p in unique_points]
 
     if prices:
         initial_price_before = item_records[0].get("price_before", 0)
@@ -258,7 +276,7 @@ def item(item_id):
     if should_refresh_cache():
         with lock:
             if should_refresh_cache():
-                messages = list(coles_updates_collection.find().sort("date", -1))
+                messages = list(get_coles_updates_collection().find().sort("date", -1))
                 cached_messages = messages
                 cache_timestamp = dt.now(utc_tz)
                 cache_info = {
@@ -317,7 +335,7 @@ def api_messages():
     if should_refresh_cache():
         with lock:
             if should_refresh_cache():
-                temp_messages = list(coles_updates_collection.find().sort("date", -1))
+                temp_messages = list(get_coles_updates_collection().find().sort("date", -1))
                 cached_messages = temp_messages
                 cache_timestamp = dt.now(utc_tz)
 
@@ -407,7 +425,7 @@ def robots_txt():
 @app.route('/sitemap.xml')
 def sitemap():
     urls = [{'loc': 'https://pricesareup.com/', 'lastmod': '2025-11-29', 'changefreq': 'daily', 'priority': '1.0'}]
-    item_ids = coles_updates_collection.distinct("item_id")
+    item_ids = get_coles_updates_collection().distinct("item_id")
     for item_id in item_ids:
         urls.append({
             'loc': f'https://pricesareup.com/item/{item_id}',
