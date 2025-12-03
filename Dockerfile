@@ -15,8 +15,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app",
-     "--worker-class", "uvicorn.workers.UvicornWorker",
-     "--workers", "2",
-     "--timeout", "120",
-     "--log-level", "info"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--preload", "app:app"]
