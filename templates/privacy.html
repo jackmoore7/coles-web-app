@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy | pricesareup.com{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="mb-4">Privacy Policy</h1>
+        <p>Last Updated: December 16, 2025</p>
+
+        <p>This Privacy Policy describes how pricesareup.com collects and uses information when you visit the website.
+        </p>
+
+        <h3 class="mt-4">Information collected automatically</h3>
+        <p>When you visit the website, hosting providers automatically collect certain information in their server logs.
+            This may include:</p>
+        <ul>
+            <li>Your IP address</li>
+            <li>Browser type and version</li>
+            <li>ISP (Internet Service Provider)</li>
+            <li>Date and time of your visit</li>
+            <li>The pages you visit</li>
+        </ul>
+        <p>This data is used for security, performance monitoring, and debugging purposes.</p>
+
+        <h3 class="mt-4">Cookies and Local Storage</h3>
+        <p>Cookes and local storage are used to improve your experience. They aren't used for tracking or advertising.
+        </p>
+
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Cookie</td>
+                    <td><code>timezone</code></td>
+                    <td>Stores your local timezone so dates are displayed correctly for your region. (365 day expiry)
+                    </td>
+                </tr>
+                <tr>
+                    <td>Local Storage</td>
+                    <td><code>theme</code></td>
+                    <td>Remembers your preference for dark or light mode.</td>
+                </tr>
+                <tr>
+                    <td>Local Storage</td>
+                    <td><code>crazyMode</code></td>
+                    <td>Remembers if you have "Crazy Mode" enabled.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 class="mt-4">Third-Party Services</h3>
+        <p>Content Delivery Networks (CDNs) are used to load standard libraries faster. These requests may expose your
+            IP address to these third parties:</p>
+        <ul>
+            <li><strong>jsDelivr & Cloudflare CDN:</strong> Used to load Bootstrap, FontAwesome, and Chart.js.</li>
+        </ul>
+
+        <div class="mt-5">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">&larr; Back to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

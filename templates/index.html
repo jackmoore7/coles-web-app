@@ -1,329 +1,347 @@
 {% extends "base.html" %}
 
 {% block head %}
-    {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        #itemView {
-            display: none;
-        }
-        #cardsView.hidden {
-            display: none;
-        }
-        #pagination.hidden {
-            display: none;
-        }
-    </style>
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    #itemView {
+        display: none;
+    }
+
+    #cardsView.hidden {
+        display: none;
+    }
+
+    #pagination.hidden {
+        display: none;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center mb-4" style="cursor: pointer;" id="resetAll">
-        <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+<div class="d-flex justify-content-center mb-4" style="cursor: pointer;" id="resetAll">
+    <img src="{{ url_for('static', filename='upup.png') }}" alt="Floating Animation" class="floating-image">
+</div>
+<div id="cardsView" class="{{ 'hidden' if initial_item else '' }}">
+    <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
+
+    <div class="input-group mb-4">
+        <input type="search" class="form-control" id="searchInput" placeholder="Search by Brand, Name, or ID"
+            aria-label="Search">
+        <button class="btn btn-outline-secondary" type="button" id="resetButton">Reset</button>
     </div>
-    <div id="cardsView" class="{{ 'hidden' if initial_item else '' }}">
-        <h6 class="mb-4 text-center">A website for tracking when products at Coles reach an all-time high</h6>
 
-        <div class="input-group mb-4">
-            <input type="search" class="form-control" id="searchInput" placeholder="Search by Brand, Name, or ID" aria-label="Search">
-            <button class="btn btn-outline-secondary" type="button" id="resetButton">Reset</button>
+    <div class="mb-4 d-flex justify-content-center flex-column align-items-center">
+        <div class="btn-group flex-wrap d-none d-md-flex mb-2 gap-1" role="group" aria-label="Date range">
+            {% for button in date_buttons %}
+            <button type="button" class="btn btn-custom-white mb-2 date-button" data-date="{{ button.date_str }}"
+                data-label="{{ button.label }}">
+                {{ button.label }}
+            </button>
+            {% endfor %}
+            <button type="button" class="btn btn-custom-white mb-2" data-bs-toggle="modal"
+                data-bs-target="#customDateModal">
+                Custom Date
+            </button>
         </div>
 
-        <div class="mb-4 d-flex justify-content-center flex-column align-items-center">
-<div class="btn-group flex-wrap d-none d-md-flex mb-2 gap-1" role="group" aria-label="Date range">
-    {% for button in date_buttons %}
-        <button type="button" 
-                class="btn btn-custom-white mb-2 date-button" 
-                            data-date="{{ button.date_str }}"
-                            data-label="{{ button.label }}">
+        <div class="dropdown mb-2">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                Sort by Date
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                <li>
+                    <a class="dropdown-item sort-option active" href="#" data-sort="date">Sort by Date</a>
+                </li>
+                <li>
+                    <a class="dropdown-item sort-option" href="#" data-sort="increase">Sort by Biggest Increase</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="dropdown d-md-none w-100" data-bs-theme="light">
+            <button class="btn btn-outline-secondary btn-lg w-100 dropdown-toggle" type="button" id="dropdownMenuButton"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                Select Date
+            </button>
+            <ul class="dropdown-menu w-100" aria-labelledby="dropdownMenuButton">
+                {% for button in date_buttons %}
+                <li>
+                    <a class="dropdown-item date-button" href="#" data-date="{{ button.date_str }}"
+                        data-label="{{ button.label }}">
                         {{ button.label }}
-                    </button>
+                    </a>
+                </li>
                 {% endfor %}
-    <button type="button" class="btn btn-custom-white mb-2" data-bs-toggle="modal" data-bs-target="#customDateModal">
-                    Custom Date
-                </button>
-            </div>
+                <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#customDateModal">
+                        Custom Date
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
 
-            <div class="dropdown mb-2">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    Sort by Date
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
-                    <li>
-                        <a class="dropdown-item sort-option active" href="#" data-sort="date">Sort by Date</a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item sort-option" href="#" data-sort="increase">Sort by Biggest Increase</a>
-                    </li>
-                </ul>
-            </div>
+    <h4 class="mb-3">
+        <span id="countDisplay">{{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }}</span>
+        <span id="dateDisplay"></span>
+    </h4>
 
-            <div class="dropdown d-md-none w-100" data-bs-theme="light">
-                <button class="btn btn-outline-secondary btn-lg w-100 dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                    Select Date
-                </button>
-                <ul class="dropdown-menu w-100" aria-labelledby="dropdownMenuButton">
-                    {% for button in date_buttons %}
-                        <li>
-                            <a class="dropdown-item date-button"
-                               href="#" 
-                               data-date="{{ button.date_str }}"
-                               data-label="{{ button.label }}">
-                                {{ button.label }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                    <li>
-                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#customDateModal">
-                            Custom Date
-                        </a>
-                    </li>
-                </ul>
+    {% if messages %}
+    <div class="row" id="cardsContainer">
+        {% for message in messages %}
+        <div class="col-lg-4 col-md-6 mb-4 item-container" onclick="loadItem({{ message.item_id }})">
+            <div class="card h-100 shadow-sm position-relative" style="cursor: pointer;">
+                {% if message.image_url %}
+                <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy"
+                    onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">
+                {% else %}
+                <img src="{{ url_for('static', filename='placeholder.png') }}" class="card-img-top"
+                    alt="No Image Available" loading="lazy">
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">
+                        {{ message.item_brand }} {{ message.item_name }}
+                    </h5>
+                    <div class="card-text">
+                        {% if message.price_before != 0 %}
+                        {% set increase = ((message.price_after - message.price_before) / message.price_before *
+                        100)|round(2) %}
+                        {% else %}
+                        {% set increase = 'Infinity' %}
+                        {% endif %}
+                        <h5 class="card-title" data-increase="{{ increase }}">
+                            ${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }}
+                            ({% if message.price_before == 0 %}+∞%{% else %}+{{ increase }}%{% endif %})
+                        </h5>
+                        <strong>Item ID:</strong> {{ message.item_id }}<br>
+                        <strong>Date:</strong>
+                        <span class="date">{{ message.date_formatted_local }}</span>
+                    </div>
+                </div>
             </div>
         </div>
+        {% endfor %}
+    </div>
 
-        <h4 class="mb-3">
-            <span id="countDisplay">{{ total_messages }} {{ 'record' if total_messages == 1 else 'records' }}</span>
-            <span id="dateDisplay"></span>
-        </h4>
+    <nav aria-label="Page navigation" id="pagination">
+        <ul id="bootstrap-overrides" class="pagination justify-content-center"></ul>
+    </nav>
 
-        {% if messages %}
-            <div class="row" id="cardsContainer">
-                {% for message in messages %}
-                    <div class="col-lg-4 col-md-6 mb-4 item-container" onclick="loadItem({{ message.item_id }})">
-                        <div class="card h-100 shadow-sm position-relative" style="cursor: pointer;">
-                            {% if message.image_url %}
-                                <img src="{{ message.image_url }}" class="card-img-top" alt="{{ message.item_name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">
-                            {% else %}
-                                <img src="{{ url_for('static', filename='placeholder.png') }}" class="card-img-top" alt="No Image Available" loading="lazy">
-                            {% endif %}
-                            <div class="card-body d-flex flex-column">
-                                <h5 class="card-title">
-                                    {{ message.item_brand }} {{ message.item_name }}
-                                </h5>
-                                <div class="card-text">
-                                    {% if message.price_before != 0 %}
-                                        {% set increase = ((message.price_after - message.price_before) / message.price_before * 100)|round(2) %}
-                                    {% else %}
-                                        {% set increase = 'Infinity' %}
-                                    {% endif %}
-                                    <h5 class="card-title" data-increase="{{ increase }}">
-                                        ${{ message.price_before }} <span>&#8594;</span> ${{ message.price_after }}
-                                        ({% if message.price_before == 0 %}+∞%{% else %}+{{ increase }}%{% endif %})
-                                    </h5>
-                                    <strong>Item ID:</strong> {{ message.item_id }}<br>
-                                    <strong>Date:</strong> 
-                                    <span class="date">{{ message.date_formatted_local }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
+    {% else %}
+    <p>No records found.</p>
+    {% endif %}
+
+    <button class="crazy-mode-toggle" id="crazyModeToggle" title="Toggle Crazy Mode">
+        <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"></i>
+    </button>
+
+    <footer class="text-center text-lg-start">
+        <div class="text-center p-3">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#infoModal">More info</a>
+            <span class="mx-2">|</span>
+            <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoModalLabel">More info</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Data is retrieved from Coles at the date and time specified on each product record. Prices may
+                        differ per store. Data collection started on 8/9/24.</p>
+                    <p>Basic, non-identifying data is collected from the website user. This is detailed in the <a
+                            href="{{ url_for('privacy') }}">Privacy Policy</a>.</p>
+                    <p>You can contact me at <samp>*@pricesareup.com</samp></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
+        </div>
+    </div>
 
-            <nav aria-label="Page navigation" id="pagination">
-                <ul id="bootstrap-overrides" class="pagination justify-content-center"></ul>
-            </nav>
-
-        {% else %}
-            <p>No records found.</p>
-        {% endif %}
-
-        <button class="crazy-mode-toggle" id="crazyModeToggle" title="Toggle Crazy Mode">
-            <i class="fa-solid fa-face-grin-tongue-wink fa-2xl"></i>
-        </button>
-
-        <footer class="text-center text-lg-start">
-            <div class="text-center p-3">
-                <a href="#" data-bs-toggle="modal" data-bs-target="#infoModal">More info</a>
-            </div>
-        </footer>
-
-        <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
+    <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="custom-date-form">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoModalLabel">More info</h5>
+                        <h5 class="modal-title" id="customDateModalLabel">Select Custom Date</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p>Data is retrieved from Coles at the date and time specified on each product record. Prices may differ per store. Data collection started on 8/9/24.</p>
-                        <p>No data is collected from the website user, other than baseline data collected by hosting services.</p>
-                        <p>You can contact me at <samp>*@pricesareup.com</samp></p>
+                        <div class="mb-3">
+                            <label for="customDate" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="customDate" required>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Apply</button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="custom-date-form">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="customDateModalLabel">Select Custom Date</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="customDate" class="form-label">Date</label>
-                                <input type="date" class="form-control" id="customDate" required>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Apply</button>
-                        </div>
-                    </form>
-                </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="itemView" style="display: {{ 'block' if initial_item else 'none' }}">
-    </div>
+<div id="itemView" style="display: {{ 'block' if initial_item else 'none' }}">
+</div>
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script>
-        function showItemView(html, dates, prices, title) {
-            document.getElementById('itemView').innerHTML = html;
-            document.getElementById('cardsView').classList.add('hidden');
-            document.getElementById('pagination').classList.add('hidden');
-            document.getElementById('itemView').style.display = 'block';
-            if (title) {
-                document.title = title + " | pricesareup.com";
-            }
+{{ super() }}
+<script>
+    let priceHistoryChart = null;
 
-            const ctx = document.getElementById('priceHistoryChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Price ($)',
-                        data: prices,
-                        borderColor: 'rgba(224, 26, 34, 1)',
-                        backgroundColor: 'rgba(224, 26, 34, 0.2)',
-                        fill: true,
-                        tension: 0.1,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        pointBackgroundColor: 'rgba(224, 26, 34, 1)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        }
+    function showItemView(html, dates, prices, title) {
+        document.getElementById('itemView').innerHTML = html;
+        document.getElementById('cardsView').classList.add('hidden');
+        document.getElementById('pagination').classList.add('hidden');
+        document.getElementById('itemView').style.display = 'block';
+        if (title) {
+            document.title = title + " | pricesareup.com";
+        }
+
+        const ctx = document.getElementById('priceHistoryChart').getContext('2d');
+
+        if (priceHistoryChart) {
+            priceHistoryChart.destroy();
+        }
+
+        priceHistoryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Price ($)',
+                    data: prices,
+                    borderColor: 'rgba(224, 26, 34, 1)',
+                    backgroundColor: 'rgba(224, 26, 34, 0.2)',
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgba(224, 26, 34, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
                     },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
+                    tooltip: {
+                        mode: 'index',
                         intersect: false
-                    },
-                    scales: {
-                        x: {
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
                             display: true,
-                            title: {
-                                display: true,
-                                text: 'Date'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Price ($)'
-                            },
-                            beginAtZero: false
+                            text: 'Date'
                         }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Price ($)'
+                        },
+                        beginAtZero: false
                     }
                 }
-            });
-        }
-
-        function showMainView() {
-            document.getElementById('itemView').style.display = 'none';
-            document.getElementById('cardsView').classList.remove('hidden');
-            document.getElementById('pagination').classList.remove('hidden');
-            document.title = "pricesareup.com";
-        }
-
-        window.goBack = function() {
-            history.back();
-        }
-        
-        async function loadItem(itemId, pushState = true) {
-            try {
-                const response = await fetch(`/item/${itemId}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                const data = await response.json();
-                
-                showItemView(data.html, data.dates, data.prices, data.title);
-                if (pushState) {
-                    history.pushState({ itemId }, '', `/item/${itemId}`);
-                }
-            } catch (error) {
-                console.error('Error loading item:', error);
             }
-        }
+        });
+    }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const cacheInfo = {{ cache_info|tojson|safe if cache_info else 'null' }};
-            if (cacheInfo) {
-                console.log(
-                    `Cache ${cacheInfo.status === 'hit' ? 'HIT' : 'MISS'} - ${cacheInfo.status === 'hit' ? 'Serving cached data' : 'Fetched fresh data'} from ${cacheInfo.timestamp}`
-                );
-            }
+    function showMainView() {
+        document.getElementById('itemView').style.display = 'none';
+        document.getElementById('cardsView').classList.remove('hidden');
+        document.getElementById('pagination').classList.remove('hidden');
+        document.title = "pricesareup.com";
+    }
 
-            const initialItem = {{ initial_item|tojson|safe if initial_item else 'null' }};
-            if (initialItem) {
-                showItemView(initialItem.html, initialItem.dates, initialItem.prices, initialItem.title);
-            } else {
-                const match = window.location.pathname.match(/^\/item\/(\d+)$/);
-                if (match) {
-                    loadItem(match[1], false);
-                }
-            }
+    window.goBack = function () {
+        history.back();
+    }
 
-            window.addEventListener('popstate', async function(event) {
-                if (event.state && event.state.itemId) {
-                    await loadItem(event.state.itemId, false);
-                } else {
-                    showMainView();
+    async function loadItem(itemId, pushState = true) {
+        try {
+            const response = await fetch(`/item/${itemId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             });
+            const data = await response.json();
 
-            const searchInput = document.getElementById('searchInput');
-            const ITEMS_PER_PAGE = 9;
-            let currentPage = 1;
-            let selectedDate = null;
-            let selectedDateLabel = '';
-            let searchTerm = '';
-            let currentSort = 'date';
-            let totalCount = {{ total_messages }};
-            let totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+            showItemView(data.html, data.dates, data.prices, data.title);
+            if (pushState) {
+                history.pushState({ itemId }, '', `/item/${itemId}`);
+            }
+        } catch (error) {
+            console.error('Error loading item:', error);
+        }
+    }
 
-            function renderMessages(messages) {
-                const container = document.getElementById('cardsContainer');
-                container.innerHTML = '';
-                messages.forEach(message => {
-                    const increase = message.increase;
-                    const increaseText = isFinite(increase) ? `+${increase.toFixed(2)}%` : '+∞%';
-                    const cardHtml = `
+    document.addEventListener('DOMContentLoaded', function () {
+        const cacheInfo = {{ cache_info| tojson | safe if cache_info else 'null'
+    }};
+    if (cacheInfo) {
+        console.log(
+            `Cache ${cacheInfo.status === 'hit' ? 'HIT' : 'MISS'} - ${cacheInfo.status === 'hit' ? 'Serving cached data' : 'Fetched fresh data'} from ${cacheInfo.timestamp}`
+        );
+    }
+
+    const initialItem = {{ initial_item| tojson | safe if initial_item else 'null' }};
+    if (initialItem) {
+        showItemView(initialItem.html, initialItem.dates, initialItem.prices, initialItem.title);
+    } else {
+        const match = window.location.pathname.match(/^\/item\/(\d+)$/);
+        if (match) {
+            loadItem(match[1], false);
+        }
+    }
+
+    window.addEventListener('popstate', async function (event) {
+        if (event.state && event.state.itemId) {
+            await loadItem(event.state.itemId, false);
+        } else {
+            showMainView();
+        }
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    const ITEMS_PER_PAGE = 9;
+    let currentPage = 1;
+    let selectedDate = null;
+    let selectedDateLabel = '';
+    let searchTerm = '';
+    let currentSort = 'date';
+    let totalCount = {{ total_messages }};
+    let totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+    function renderMessages(messages) {
+        const container = document.getElementById('cardsContainer');
+        container.innerHTML = '';
+        messages.forEach(message => {
+            const increase = message.increase;
+            const increaseText = isFinite(increase) ? `+${increase.toFixed(2)}%` : '+∞%';
+            const cardHtml = `
                         <div class="col-lg-4 col-md-6 mb-4 item-container" onclick="loadItem(${message.item_id})">
                             <div class="card h-100 shadow-sm position-relative" style="cursor: pointer;">
                                 ${message.image_url ? `<img src="${message.image_url}" class="card-img-top" alt="${message.item_name}" loading="lazy" onerror="this.onerror=null;this.src='{{ url_for('static', filename='placeholder.png') }}';">` : `<img src="{{ url_for('static', filename='placeholder.png') }}" class="card-img-top" alt="No Image Available" loading="lazy">`}
@@ -340,245 +358,245 @@
                             </div>
                         </div>
                     `;
-                    container.insertAdjacentHTML('beforeend', cardHtml);
-                });
+            container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+    }
+
+    async function fetchMessages(page = 1, date = selectedDate, search = searchTerm, sort = currentSort) {
+        try {
+            const params = new URLSearchParams({
+                page: page,
+                per_page: ITEMS_PER_PAGE,
+                sort: sort
+            });
+            if (date) params.append('date', date);
+            if (search) params.append('search', search);
+
+            const response = await fetch(`/api/messages?${params}`);
+            const data = await response.json();
+
+            renderMessages(data.messages);
+            currentPage = data.page;
+            totalCount = data.total_count;
+            totalPages = data.total_pages;
+            updatePaginationUI(currentPage, totalPages, totalCount);
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    }
+
+    function updatePaginationUI(page, totalPages, totalItems) {
+        const countDisplay = document.getElementById('countDisplay');
+        const dateDisplay = document.getElementById('dateDisplay');
+        if (countDisplay) {
+            let countText = `${totalItems} ${totalItems === 1 ? 'record' : 'records'}`;
+            if (searchTerm) {
+                countText += ` matching "${searchTerm}"`;
             }
+            countDisplay.textContent = countText;
+        }
+        if (dateDisplay) {
+            dateDisplay.textContent = selectedDate ? ` on ${selectedDate}` : '';
+        }
 
-            async function fetchMessages(page = 1, date = selectedDate, search = searchTerm, sort = currentSort) {
-                try {
-                    const params = new URLSearchParams({
-                        page: page,
-                        per_page: ITEMS_PER_PAGE,
-                        sort: sort
-                    });
-                    if (date) params.append('date', date);
-                    if (search) params.append('search', search);
+        const ul = document.querySelector('nav[aria-label="Page navigation"] ul');
+        if (!ul) return;
+        ul.innerHTML = '';
 
-                    const response = await fetch(`/api/messages?${params}`);
-                    const data = await response.json();
+        if (totalPages <= 1) return;
 
-                    renderMessages(data.messages);
-                    currentPage = data.page;
-                    totalCount = data.total_count;
-                    totalPages = data.total_pages;
-                    updatePaginationUI(currentPage, totalPages, totalCount);
-                } catch (error) {
-                    console.error('Error fetching messages:', error);
-                }
-            }
-
-            function updatePaginationUI(page, totalPages, totalItems) {
-                const countDisplay = document.getElementById('countDisplay');
-                const dateDisplay = document.getElementById('dateDisplay');
-                if (countDisplay) {
-                    let countText = `${totalItems} ${totalItems === 1 ? 'record' : 'records'}`;
-                    if (searchTerm) {
-                        countText += ` matching "${searchTerm}"`;
-                    }
-                    countDisplay.textContent = countText;
-                }
-                if (dateDisplay) {
-                    dateDisplay.textContent = selectedDate ? ` on ${selectedDate}` : '';
-                }
-
-                const ul = document.querySelector('nav[aria-label="Page navigation"] ul');
-                if (!ul) return;
-                ul.innerHTML = '';
-
-                if (totalPages <= 1) return;
-
-                const prevLi = document.createElement('li');
-                prevLi.className = `page-item ${page === 1 ? 'disabled' : ''}`;
-                prevLi.innerHTML = `
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${page === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `
                     <a class="page-link" href="#" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 `;
-                if (page > 1) {
-                    prevLi.querySelector('a').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        fetchMessages(page - 1);
-                    });
-                }
-                ul.appendChild(prevLi);
+        if (page > 1) {
+            prevLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchMessages(page - 1);
+            });
+        }
+        ul.appendChild(prevLi);
 
-                const window_size = 5;
-                const half_window = Math.floor(window_size / 2);
-                let start_page = Math.max(1, page - half_window);
-                let end_page = Math.min(totalPages, start_page + window_size - 1);
+        const window_size = 5;
+        const half_window = Math.floor(window_size / 2);
+        let start_page = Math.max(1, page - half_window);
+        let end_page = Math.min(totalPages, start_page + window_size - 1);
 
-                if (end_page - start_page + 1 < window_size) {
-                    start_page = Math.max(1, end_page - window_size + 1);
-                }
+        if (end_page - start_page + 1 < window_size) {
+            start_page = Math.max(1, end_page - window_size + 1);
+        }
 
-                if (start_page > 1) {
-                    ul.appendChild(createPageItem(1));
-                    if (start_page > 2) {
-                        ul.appendChild(createEllipsis());
-                    }
-                }
+        if (start_page > 1) {
+            ul.appendChild(createPageItem(1));
+            if (start_page > 2) {
+                ul.appendChild(createEllipsis());
+            }
+        }
 
-                for (let i = start_page; i <= end_page; i++) {
-                    ul.appendChild(createPageItem(i));
-                }
+        for (let i = start_page; i <= end_page; i++) {
+            ul.appendChild(createPageItem(i));
+        }
 
-                if (end_page < totalPages) {
-                    if (end_page < totalPages - 1) {
-                        ul.appendChild(createEllipsis());
-                    }
-                    ul.appendChild(createPageItem(totalPages));
-                }
+        if (end_page < totalPages) {
+            if (end_page < totalPages - 1) {
+                ul.appendChild(createEllipsis());
+            }
+            ul.appendChild(createPageItem(totalPages));
+        }
 
-                const nextLi = document.createElement('li');
-                nextLi.className = `page-item ${page === totalPages ? 'disabled' : ''}`;
-                nextLi.innerHTML = `
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${page === totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `
                     <a class="page-link" href="#" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 `;
-                if (page < totalPages) {
-                    nextLi.querySelector('a').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        fetchMessages(page + 1);
-                    });
-                }
-                ul.appendChild(nextLi);
-            }
+        if (page < totalPages) {
+            nextLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchMessages(page + 1);
+            });
+        }
+        ul.appendChild(nextLi);
+    }
 
-            function createPageItem(pageNum) {
-                const li = document.createElement('li');
-                li.className = `page-item ${pageNum === currentPage ? 'active' : ''}`;
-                li.innerHTML = `
+    function createPageItem(pageNum) {
+        const li = document.createElement('li');
+        li.className = `page-item ${pageNum === currentPage ? 'active' : ''}`;
+        li.innerHTML = `
                     <a class="page-link" href="#">${pageNum}</a>
                 `;
-                if (pageNum !== currentPage) {
-                    li.querySelector('a').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        fetchMessages(pageNum);
-                    });
-                }
-                return li;
-            }
+        if (pageNum !== currentPage) {
+            li.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchMessages(pageNum);
+            });
+        }
+        return li;
+    }
 
-            function createEllipsis() {
-                const li = document.createElement('li');
-                li.className = 'page-item disabled';
-                li.innerHTML = '<span class="page-link">...</span>';
-                return li;
-            }
+    function createEllipsis() {
+        const li = document.createElement('li');
+        li.className = 'page-item disabled';
+        li.innerHTML = '<span class="page-link">...</span>';
+        return li;
+    }
 
-            function debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
-            }
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
 
-            document.querySelectorAll('.date-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.querySelectorAll('.date-button').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    button.classList.add('active');
-                    selectedDate = button.dataset.date;
-                    selectedDateLabel = button.dataset.label;
-                    fetchMessages(1);
-                });
+    document.querySelectorAll('.date-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.date-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
+            selectedDate = button.dataset.date;
+            selectedDateLabel = button.dataset.label;
+            fetchMessages(1);
+        });
+    });
+
+    document.querySelectorAll('.sort-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.sort-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            option.classList.add('active');
+            currentSort = option.dataset.sort;
+            document.getElementById('sortDropdown').textContent = option.textContent;
+            fetchMessages(1);
+        });
+    });
+
+    const customDateForm = document.getElementById('custom-date-form');
+    if (customDateForm) {
+        customDateForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const dateInput = document.getElementById('customDate');
+            const date = new Date(dateInput.value + 'T00:00:00');
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            selectedDate = `${day}/${month}/${year}`;
+            selectedDateLabel = '';
+
+            document.querySelectorAll('.date-button').forEach(btn => {
+                btn.classList.remove('active');
             });
 
-            document.querySelectorAll('.sort-option').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.querySelectorAll('.sort-option').forEach(opt => {
-                        opt.classList.remove('active');
-                    });
-                    option.classList.add('active');
-                    currentSort = option.dataset.sort;
-                    document.getElementById('sortDropdown').textContent = option.textContent;
-                    fetchMessages(1);
-                });
-            });
+            fetchMessages(1);
 
-            const customDateForm = document.getElementById('custom-date-form');
-            if (customDateForm) {
-                customDateForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const dateInput = document.getElementById('customDate');
-                    const date = new Date(dateInput.value + 'T00:00:00');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const year = date.getFullYear();
-                    selectedDate = `${day}/${month}/${year}`;
-                    selectedDateLabel = '';
+            const modal = bootstrap.Modal.getInstance(document.getElementById('customDateModal'));
+            modal.hide();
+        });
+    }
 
-                    document.querySelectorAll('.date-button').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
+    searchInput.addEventListener('input', debounce((e) => {
+        searchTerm = e.target.value.toLowerCase();
+        fetchMessages(1);
+    }, 150));
 
-                    fetchMessages(1);
-
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('customDateModal'));
-                    modal.hide();
-                });
-            }
-
-            searchInput.addEventListener('input', debounce((e) => {
-                searchTerm = e.target.value.toLowerCase();
-                fetchMessages(1);
-            }, 150));
-
-            const crazyModeToggle = document.getElementById('crazyModeToggle');
-            const cardsContainer = document.getElementById('cardsContainer');
-            if (crazyModeToggle && cardsContainer) {
-                crazyModeToggle.addEventListener('click', function() {
-                    cardsContainer.classList.toggle('crazy-mode');
-                    this.classList.toggle('active');
-                    const isCrazyMode = cardsContainer.classList.contains('crazy-mode');
-                    localStorage.setItem('crazyMode', isCrazyMode);
-                });
-
-                const savedCrazyMode = localStorage.getItem('crazyMode') === 'true';
-                if (savedCrazyMode) {
-                    cardsContainer.classList.add('crazy-mode');
-                    crazyModeToggle.classList.add('active');
-                }
-            }
-
-            updatePaginationUI(currentPage, totalPages, totalCount);
-
-            function resetAll() {
-                showMainView();
-
-                searchInput.value = '';
-                searchTerm = '';
-
-                selectedDate = null;
-                selectedDateLabel = '';
-                document.querySelectorAll('.date-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-
-                currentSort = 'date';
-                document.querySelectorAll('.sort-option').forEach(opt => {
-                    opt.classList.remove('active');
-                });
-                document.querySelector('.sort-option[data-sort="date"]').classList.add('active');
-                document.getElementById('sortDropdown').textContent = 'Sort by Date';
-
-                fetchMessages(1);
-
-                history.pushState({}, '', '/');
-            }
-
-            document.getElementById('resetButton').addEventListener('click', resetAll);
-            document.getElementById('resetAll').addEventListener('click', resetAll);
+    const crazyModeToggle = document.getElementById('crazyModeToggle');
+    const cardsContainer = document.getElementById('cardsContainer');
+    if (crazyModeToggle && cardsContainer) {
+        crazyModeToggle.addEventListener('click', function () {
+            cardsContainer.classList.toggle('crazy-mode');
+            this.classList.toggle('active');
+            const isCrazyMode = cardsContainer.classList.contains('crazy-mode');
+            localStorage.setItem('crazyMode', isCrazyMode);
         });
 
-    </script>
+        const savedCrazyMode = localStorage.getItem('crazyMode') === 'true';
+        if (savedCrazyMode) {
+            cardsContainer.classList.add('crazy-mode');
+            crazyModeToggle.classList.add('active');
+        }
+    }
+
+    updatePaginationUI(currentPage, totalPages, totalCount);
+
+    function resetAll() {
+        showMainView();
+
+        searchInput.value = '';
+        searchTerm = '';
+
+        selectedDate = null;
+        selectedDateLabel = '';
+        document.querySelectorAll('.date-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        currentSort = 'date';
+        document.querySelectorAll('.sort-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+        document.querySelector('.sort-option[data-sort="date"]').classList.add('active');
+        document.getElementById('sortDropdown').textContent = 'Sort by Date';
+
+        fetchMessages(1);
+
+        history.pushState({}, '', '/');
+    }
+
+    document.getElementById('resetButton').addEventListener('click', resetAll);
+    document.getElementById('resetAll').addEventListener('click', resetAll);
+        });
+
+</script>
 {% endblock %}

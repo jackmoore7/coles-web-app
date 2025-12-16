@@ -291,6 +291,7 @@ def item(item_id):
     
     messages = cached_messages
     total_messages = len(messages)
+    messages = messages[:9]
 
     for message in messages:
         if message.get("date"):
@@ -422,9 +423,14 @@ def robots_txt():
         mimetype='text/plain'
     )
 
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 @app.route('/sitemap.xml')
 def sitemap():
-    urls = [{'loc': 'https://pricesareup.com/', 'lastmod': '2025-11-29', 'changefreq': 'daily', 'priority': '1.0'}]
+    urls = [{'loc': 'https://pricesareup.com/', 'lastmod': '2025-11-29', 'changefreq': 'daily', 'priority': '1.0'},
+            {'loc': 'https://pricesareup.com/privacy', 'lastmod': '2025-12-16', 'changefreq': 'monthly', 'priority': '0.5'}]
     item_ids = get_coles_updates_collection().distinct("item_id")
     for item_id in item_ids:
         urls.append({
