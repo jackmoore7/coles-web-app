@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 import os
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import threading
+import ipaddress
+import urllib.request
+import logging
 
 load_dotenv('config.env')
 
@@ -15,6 +18,71 @@ MONGODB_URI = os.getenv('MONGODB_URI')
 client = None
 db = None
 coles_updates_collection = None
+
+CLOUDFLARE_IPS_V4_URL = "https://www.cloudflare.com/ips-v4"
+CLOUDFLARE_IPS_V6_URL = "https://www.cloudflare.com/ips-v6"
+CLOUDFLARE_NETWORKS = []
+
+FALLBACK_CLOUDFLARE_NETWORKS = [
+    "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
+    "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
+    "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+    "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
+
+    "2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32",
+    "2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32"
+]
+
+def load_cloudflare_ips():
+    """Load Cloudflare IP ranges from their published list, with fallback."""
+    global CLOUDFLARE_NETWORKS
+    networks = []
+    
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+    
+    try:
+        req_v4 = urllib.request.Request(CLOUDFLARE_IPS_V4_URL, headers=headers)
+        with urllib.request.urlopen(req_v4) as response:
+            ipv4_data = response.read().decode('utf-8')
+            networks.extend([ipaddress.ip_network(ip.strip()) for ip in ipv4_data.splitlines()])
+        
+        req_v6 = urllib.request.Request(CLOUDFLARE_IPS_V6_URL, headers=headers)
+        with urllib.request.urlopen(req_v6) as response:
+            ipv6_data = response.read().decode('utf-8')
+            networks.extend([ipaddress.ip_network(ip.strip()) for ip in ipv6_data.splitlines()])
+            
+        CLOUDFLARE_NETWORKS = networks
+        app.logger.info(f"Loaded {len(CLOUDFLARE_NETWORKS)} Cloudflare IP networks dynamically.")
+    except Exception as e:
+        app.logger.warning(f"Failed to load Cloudflare IP ranges dynamically: {e}. Using fallback list.")
+        CLOUDFLARE_NETWORKS = [ipaddress.ip_network(ip) for ip in FALLBACK_CLOUDFLARE_NETWORKS]
+        app.logger.info(f"Loaded {len(CLOUDFLARE_NETWORKS)} Cloudflare IP networks from fallback.")
+
+load_cloudflare_ips()
+
+@app.before_request
+def limit_to_cloudflare():
+    """Reject requests not coming from Cloudflare when in Production."""
+    if not os.environ.get('FLY_APP_NAME'):
+        return None
+    
+    client_ip_str = request.headers.get('Fly-Client-IP')
+    
+    if not client_ip_str:
+        app.logger.warning("Blocked request with missing Fly-Client-IP")
+        abort(403)
+
+    try:
+        client_ip = ipaddress.ip_address(client_ip_str)
+        is_cloudflare = any(client_ip in network for network in CLOUDFLARE_NETWORKS)
+        
+        if not is_cloudflare:
+            app.logger.warning(f"Blocked request from non-Cloudflare IP: {client_ip_str}")
+            abort(403)
+            
+    except ValueError:
+        app.logger.warning(f"Invalid IP address in header: {client_ip_str}")
+        abort(403)
 
 def get_coles_updates_collection():
     global client, db, coles_updates_collection
