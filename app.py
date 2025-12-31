@@ -8,6 +8,7 @@ import threading
 import ipaddress
 import urllib.request
 import logging
+import calendar
 
 load_dotenv('config.env')
 
@@ -512,6 +513,111 @@ def sitemap():
         sitemap_content += f'<url>\n<loc>{url["loc"]}</loc>\n<lastmod>{url["lastmod"]}</lastmod>\n<changefreq>{url["changefreq"]}</changefreq>\n<priority>{url["priority"]}</priority>\n</url>\n'
     sitemap_content += '</urlset>'
     return app.response_class(sitemap_content, mimetype='application/xml')
+
+@app.route('/wrapped/2025')
+def wrapped_2025():
+    start_date = dt(2025, 1, 1, tzinfo=utc_tz)
+    end_date = dt(2026, 1, 1, tzinfo=utc_tz)
+    
+    collection = get_coles_updates_collection()
+
+    total_increases = collection.count_documents({
+        "date": {"$gte": start_date, "$lt": end_date},
+        "$expr": {"$gt": ["$price_after", "$price_before"]}
+    })
+
+    pipeline_pct = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lt": end_date},
+            "price_before": {"$ne": 0}
+        }},
+        {"$project": {
+            "item_brand": 1,
+            "item_name": 1,
+            "price_before": 1,
+            "price_after": 1,
+            "increase_pct": {
+                "$multiply": [
+                    {"$divide": [{"$subtract": ["$price_after", "$price_before"]}, "$price_before"]},
+                    100
+                ]
+            }
+        }},
+        {"$sort": {"increase_pct": -1}},
+        {"$limit": 5}
+    ]
+    top_pct_increases = list(collection.aggregate(pipeline_pct))
+
+    pipeline_freq = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lt": end_date},
+            "$expr": {"$gt": ["$price_after", "$price_before"]}
+        }},
+        {"$group": {
+            "_id": "$item_id",
+            "item_brand": {"$first": "$item_brand"},
+            "item_name": {"$first": "$item_name"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    repeat_offenders = list(collection.aggregate(pipeline_freq))
+
+    pipeline_brand = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lt": end_date},
+            "$expr": {"$gt": ["$price_after", "$price_before"]}
+        }},
+        {"$group": {
+            "_id": "$item_brand",
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    top_brands = list(collection.aggregate(pipeline_brand))
+
+    pipeline_month = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lt": end_date}
+        }},
+        {"$group": {
+            "_id": {"$month": "$date"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    monthly_data = list(collection.aggregate(pipeline_month))
+    
+    month_map = {item['_id']: item['count'] for item in monthly_data}
+    month_labels = []
+    month_counts = []
+    max_month_count = 0
+    busiest_month_index = 0
+
+    for i in range(1, 13):
+        month_name = calendar.month_name[i]
+        count = month_map.get(i, 0)
+        month_labels.append(month_name)
+        month_counts.append(count)
+        
+        if count > max_month_count:
+            max_month_count = count
+            busiest_month_index = i
+
+    busiest_month_name = calendar.month_name[busiest_month_index] if busiest_month_index > 0 else "N/A"
+
+    return render_template(
+        'wrapped_2025.html',
+        total_increases=total_increases,
+        top_pct_increases=top_pct_increases,
+        repeat_offenders=repeat_offenders,
+        top_brands=top_brands,
+        month_labels=month_labels,
+        month_counts=month_counts,
+        busiest_month_name=busiest_month_name
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
