@@ -608,6 +608,32 @@ def wrapped_2025():
 
     busiest_month_name = calendar.month_name[busiest_month_index] if busiest_month_index > 0 else "N/A"
 
+    # 6. Aggregate Stats (Averages)
+    pipeline_avg = [
+        {"$match": {
+            "date": {"$gte": start_date, "$lt": end_date},
+            "$expr": {"$gt": ["$price_after", "$price_before"]},
+            "price_before": {"$ne": 0}
+        }},
+        {"$project": {
+            "increase_abs": {"$subtract": ["$price_after", "$price_before"]},
+            "increase_pct": {
+                "$multiply": [
+                    {"$divide": [{"$subtract": ["$price_after", "$price_before"]}, "$price_before"]},
+                    100
+                ]
+            }
+        }},
+        {"$group": {
+            "_id": None,
+            "avg_increase_abs": {"$avg": "$increase_abs"},
+            "avg_increase_pct": {"$avg": "$increase_pct"}
+        }}
+    ]
+    avg_stats = list(collection.aggregate(pipeline_avg))
+    avg_increase_abs = avg_stats[0]['avg_increase_abs'] if avg_stats else 0
+    avg_increase_pct = avg_stats[0]['avg_increase_pct'] if avg_stats else 0
+
     return render_template(
         'wrapped_2025.html',
         total_increases=total_increases,
@@ -616,7 +642,9 @@ def wrapped_2025():
         top_brands=top_brands,
         month_labels=month_labels,
         month_counts=month_counts,
-        busiest_month_name=busiest_month_name
+        busiest_month_name=busiest_month_name,
+        avg_increase_abs=avg_increase_abs,
+        avg_increase_pct=avg_increase_pct
     )
 
 if __name__ == '__main__':

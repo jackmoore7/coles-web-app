@@ -137,16 +137,37 @@
 </div>
 
 <div class="row g-4 mb-5 justify-content-center">
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="stat-card text-center">
             <div class="stat-value">{{ total_increases }}</div>
             <div class="stat-label">Total Price Increases</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="stat-card text-center">
             <div class="stat-value">{{ busiest_month_name }}</div>
             <div class="stat-label">Busiest Month</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card text-center">
+            <div class="stat-value">+${{ avg_increase_abs|round(2) }}</div>
+            <div class="stat-label">Average Dollar Increase</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card text-center">
+            <div class="stat-value">+{{ avg_increase_pct|round(1) }}%</div>
+            <div class="stat-label">Average Percentage Increase</div>
+        </div>
+    </div>
+</div>
+
+<h2 class="section-title">Monthly Breakdown</h2>
+<div class="row justify-content-center mb-5">
+    <div class="col-lg-10">
+        <div class="chart-container">
+            <canvas id="monthlyChart"></canvas>
         </div>
     </div>
 </div>
@@ -201,15 +222,6 @@
             <div class="ranking-value">{{ brand.count }}</div>
         </div>
         {% endfor %}
-    </div>
-</div>
-
-<h2 class="section-title">Monthly Breakdown</h2>
-<div class="row justify-content-center mb-5">
-    <div class="col-lg-10">
-        <div class="chart-container">
-            <canvas id="monthlyChart"></canvas>
-        </div>
     </div>
 </div>
 
